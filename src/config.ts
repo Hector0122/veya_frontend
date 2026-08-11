@@ -1,0 +1,18 @@
+import { Platform } from 'react-native';
+
+/**
+ * Base URL de la API.
+ *
+ * - Emulador Android: 10.0.2.2 apunta al localhost de la máquina host.
+ * - Simulador iOS: localhost funciona directo.
+ * - Dispositivo físico: reemplazá por la IP LAN de tu máquina (ej. 192.168.x.x)
+ *   o por la URL pública del backend en Railway.
+ */
+const DEV_API_URL = Platform.select({
+  android: 'http://10.0.2.2:3000',
+  default: 'http://localhost:3000',
+});
+
+export const API_BASE_URL = __DEV__
+  ? DEV_API_URL
+  : 'https://TU-BACKEND.up.railway.app'; // TODO: URL de producción en Railway
