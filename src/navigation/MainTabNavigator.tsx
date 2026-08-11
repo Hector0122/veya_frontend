@@ -1,24 +1,29 @@
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import React from 'react';
-import { StyleSheet, Text } from 'react-native';
+import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { HomeScreen } from '../screens/HomeScreen';
 import { MyListScreen } from '../screens/MyListScreen';
 import { ProfileScreen } from '../screens/ProfileScreen';
 import { SearchScreen } from '../screens/SearchScreen';
 import { colors } from '../theme';
+import { iconSize } from '../theme/tokens';
 import type { MainTabParamList } from './types';
 
 const Tab = createBottomTabNavigator<MainTabParamList>();
 
+// Iconos MDI (react-native-vector-icons/MaterialCommunityIcons), no emoji —
+// un emoji es un glifo a color fijo del sistema y no obedece `color`, así
+// que el tab activo nunca se pintaba de verdad del color de marca.
+// Ver brand-kit/README.md#iconos.
 const TAB_ICONS: Record<keyof MainTabParamList, string> = {
-  Home: '🏠',
-  Buscar: '🔍',
-  MiLista: '📚',
-  Perfil: '👤',
+  Home: 'home-variant',
+  Buscar: 'magnify',
+  MiLista: 'bookmark-multiple-outline',
+  Perfil: 'account-circle-outline',
 };
 
 function TabIcon({ routeName, color }: { routeName: keyof MainTabParamList; color: string }) {
-  return <Text style={[styles.icon, { color }]}>{TAB_ICONS[routeName]}</Text>;
+  return <Icon name={TAB_ICONS[routeName]} size={iconSize.md} color={color} />;
 }
 
 export function MainTabNavigator() {
@@ -45,7 +50,3 @@ export function MainTabNavigator() {
     </Tab.Navigator>
   );
 }
-
-const styles = StyleSheet.create({
-  icon: { fontSize: 18 },
-});

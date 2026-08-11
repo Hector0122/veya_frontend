@@ -1,6 +1,6 @@
 import React from 'react';
 import { FlatList, StyleSheet, Text, View } from 'react-native';
-import { spacing, typography } from '../theme';
+import { colors, spacing, typography } from '../theme';
 import type { Content } from '../types/content';
 import { ContentCard } from './ContentCard';
 
@@ -54,6 +54,6 @@ const styles = StyleSheet.create({
   },
   empty: {
     paddingHorizontal: spacing.md,
-    color: '#94A3B8',
+    color: colors.muted,
   },
 });

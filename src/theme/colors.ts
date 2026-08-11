@@ -1,25 +1,35 @@
 /**
  * Paleta de Veya — oscuro por defecto, minimalista, enfoque en posters.
  * Ver VEYA.md > Tema visual.
+ *
+ * Fuente: brand-kit/tokens.ts. `primary`/`accent` antes eran un morado/teal
+ * propios ligeramente distintos (`#7C5CFF`/`#21D4B4`) — ahora son literalmente
+ * los mismos hex que usa Vaulta (`hues.purple`/`hues.teal`), en espejo:
+ * Vaulta = teal primary + morado accent, Veya = morado primary + teal accent.
+ * Ver brand-kit/README.md#colores-por-app.
  */
+import { createAppTheme, brands } from './tokens';
+
+const theme = createAppTheme(brands.veya).dark;
+
 export const colors = {
-  background: '#0B0F14',
-  surface: '#121821',
-  surfaceAlt: '#1A2230',
-  border: '#232C3B',
-  primary: '#7C5CFF',
-  accent: '#21D4B4',
-  text: '#FFFFFF',
-  muted: '#94A3B8',
-  danger: '#F2545B',
-  warning: '#F5A623',
+  background: theme.background,
+  surface: theme.surface,
+  surfaceAlt: theme.surfaceAlt,
+  border: theme.border,
+  primary: theme.primary,
+  accent: theme.accent,
+  text: theme.text,
+  muted: theme.textSecondary,
+  danger: theme.danger,
+  warning: theme.warning,
 
   // Estados de contenido (Mi lista / badges)
   status: {
-    pendiente: '#94A3B8',
-    viendo: '#7C5CFF',
-    terminado: '#21D4B4',
-    abandonado: '#F2545B',
+    pendiente: theme.textSecondary,
+    viendo: theme.primary,
+    terminado: theme.accent,
+    abandonado: theme.danger,
   },
 } as const;
 
