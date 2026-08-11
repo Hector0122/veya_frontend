@@ -13,6 +13,6 @@ const DEV_API_URL = Platform.select({
   default: 'http://localhost:3000',
 });
 
-export const API_BASE_URL = __DEV__
-  ? DEV_API_URL
-  : 'https://TU-BACKEND.up.railway.app'; // TODO: URL de producción en Railway
+const PROD_API_URL = 'https://veyabackend-production.up.railway.app';
+
+export const API_BASE_URL = __DEV__ ? DEV_API_URL : PROD_API_URL;
