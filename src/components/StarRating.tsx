@@ -1,6 +1,10 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import Animated, { useAnimatedStyle, useSharedValue, withSequence, withSpring } from 'react-native-reanimated';
 import { colors } from '../theme';
+import { motion } from '../theme/tokens';
+
+const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
 interface StarRatingProps {
   value: number | null;
@@ -14,18 +18,53 @@ export function StarRating({ value, onChange, size = 22 }: StarRatingProps) {
 
   return (
     <View style={styles.row}>
-      {stars.map((star) => {
-        const filled = (value ?? 0) >= star;
-        const StarWrapper = onChange ? Pressable : View;
-        return (
-          <StarWrapper key={star} onPress={onChange ? () => onChange(star) : undefined}>
-            <Text style={{ fontSize: size, color: filled ? colors.primary : colors.muted }}>
-              {filled ? '★' : '☆'}
-            </Text>
-          </StarWrapper>
-        );
-      })}
+      {stars.map((star) => (
+        <Star
+          key={star}
+          filled={(value ?? 0) >= star}
+          justSelected={value === star}
+          onPress={onChange ? () => onChange(star) : undefined}
+          size={size}
+        />
+      ))}
     </View>
+  );
+}
+
+function Star({
+  filled,
+  justSelected,
+  onPress,
+  size,
+}: {
+  filled: boolean;
+  justSelected: boolean;
+  onPress?: () => void;
+  size: number;
+}) {
+  const scale = useSharedValue(1);
+
+  useEffect(() => {
+    if (justSelected) {
+      scale.value = withSequence(
+        withSpring(1.3, motion.spring.press),
+        withSpring(1, motion.spring.press),
+      );
+    }
+  }, [justSelected, scale]);
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+  }));
+
+  const StarWrapper = onPress ? AnimatedPressable : Animated.View;
+
+  return (
+    <StarWrapper onPress={onPress} style={animatedStyle}>
+      <Text style={{ fontSize: size, color: filled ? colors.primary : colors.muted }}>
+        {filled ? '★' : '☆'}
+      </Text>
+    </StarWrapper>
   );
 }
 

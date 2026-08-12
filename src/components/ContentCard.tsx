@@ -1,7 +1,11 @@
 import React from 'react';
 import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
+import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 import { colors, radius, spacing, typography } from '../theme';
+import { motion } from '../theme/tokens';
 import type { Content } from '../types/content';
+
+const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
 const CARD_WIDTH = 120;
 const CARD_HEIGHT = 180;
@@ -13,10 +17,21 @@ interface ContentCardProps {
 }
 
 export function ContentCard({ content, onPress, badge }: ContentCardProps) {
+  const scale = useSharedValue(1);
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+  }));
+
   return (
-    <Pressable
+    <AnimatedPressable
       onPress={onPress}
-      style={({ pressed }) => [styles.container, pressed && styles.pressed]}
+      onPressIn={() => {
+        scale.value = withSpring(0.95, motion.spring.press);
+      }}
+      onPressOut={() => {
+        scale.value = withSpring(1, motion.spring.press);
+      }}
+      style={[styles.container, animatedStyle]}
     >
       <View style={styles.posterWrapper}>
         {content.posterUrl ? (
@@ -37,7 +52,7 @@ export function ContentCard({ content, onPress, badge }: ContentCardProps) {
       <Text style={typography.cardTitle} numberOfLines={2}>
         {content.title}
       </Text>
-    </Pressable>
+    </AnimatedPressable>
   );
 }
 
@@ -45,9 +60,6 @@ const styles = StyleSheet.create({
   container: {
     width: CARD_WIDTH,
     marginRight: spacing.md,
-  },
-  pressed: {
-    opacity: 0.7,
   },
   posterWrapper: {
     width: CARD_WIDTH,
