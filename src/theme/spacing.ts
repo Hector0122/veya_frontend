@@ -7,9 +7,14 @@ export const spacing = {
   xxl: 48,
 } as const;
 
+// Alineado a la escala canónica de arcd_kit/tokens.ts `radius` (antes
+// tenía su propia escala: sm:6/md:10/lg:16 — desalineada del resto de las
+// apps aunque ya estuviera tokenizada en los 16 archivos que la usan).
 export const radius = {
-  sm: 6,
-  md: 10,
-  lg: 16,
+  xs: 6,
+  sm: 10,
+  md: 14,
+  lg: 20,
+  xl: 28,
   pill: 999,
 } as const;

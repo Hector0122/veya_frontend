@@ -1,7 +1,30 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as Keychain from 'react-native-keychain';
 import { create } from 'zustand';
-import { createJSONStorage, persist } from 'zustand/middleware';
+import { createJSONStorage, persist, type StateStorage } from 'zustand/middleware';
 import type { AuthTokens, User } from '../types/auth';
+
+const KEYCHAIN_SERVICE = 'veya.auth';
+
+// Limpieza de la migración AsyncStorage → Keychain: borra los tokens en texto
+// plano que versiones anteriores dejaron en disco. Idempotente.
+AsyncStorage.removeItem('veya-auth').catch(() => {});
+
+const secureStorage: StateStorage = {
+  getItem: async () => {
+    const creds = await Keychain.getGenericPassword({ service: KEYCHAIN_SERVICE });
+    return creds ? creds.password : null;
+  },
+  setItem: async (_name, value) => {
+    await Keychain.setGenericPassword('auth', value, {
+      service: KEYCHAIN_SERVICE,
+      accessible: Keychain.ACCESSIBLE.WHEN_UNLOCKED_THIS_DEVICE_ONLY,
+    });
+  },
+  removeItem: async () => {
+    await Keychain.resetGenericPassword({ service: KEYCHAIN_SERVICE });
+  },
+};
 
 interface AuthState {
   user: User | null;
@@ -42,7 +65,7 @@ export const useAuthStore = create<AuthState>()(
     }),
     {
       name: 'veya-auth',
-      storage: createJSONStorage(() => AsyncStorage),
+      storage: createJSONStorage(() => secureStorage),
       partialize: (state) => ({
         user: state.user,
         accessToken: state.accessToken,

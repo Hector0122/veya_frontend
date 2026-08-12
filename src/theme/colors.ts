@@ -2,11 +2,11 @@
  * Paleta de Veya — oscuro por defecto, minimalista, enfoque en posters.
  * Ver VEYA.md > Tema visual.
  *
- * Fuente: brand-kit/tokens.ts. `primary`/`accent` antes eran un morado/teal
+ * Fuente: arcd_kit/tokens.ts. `primary`/`accent` antes eran un morado/teal
  * propios ligeramente distintos (`#7C5CFF`/`#21D4B4`) — ahora son literalmente
  * los mismos hex que usa Vaulta (`hues.purple`/`hues.teal`), en espejo:
  * Vaulta = teal primary + morado accent, Veya = morado primary + teal accent.
- * Ver brand-kit/README.md#colores-por-app.
+ * Ver arcd_kit/README.md#colores-por-app.
  */
 import { createAppTheme, brands } from './tokens';
 
