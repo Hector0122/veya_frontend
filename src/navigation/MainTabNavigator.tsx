@@ -14,7 +14,7 @@ const Tab = createBottomTabNavigator<MainTabParamList>();
 // Iconos MDI (react-native-vector-icons/MaterialCommunityIcons), no emoji —
 // un emoji es un glifo a color fijo del sistema y no obedece `color`, así
 // que el tab activo nunca se pintaba de verdad del color de marca.
-// Ver brand-kit/README.md#iconos.
+// Ver arcd_kit/README.md#iconos.
 const TAB_ICONS: Record<keyof MainTabParamList, string> = {
   Home: 'home-variant',
   Buscar: 'magnify',
