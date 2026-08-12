@@ -12,6 +12,7 @@ import Toast from 'react-native-toast-message';
 import { Screen } from '../../components/Screen';
 import { useAuth } from '../../hooks/useAuth';
 import { colors, radius, spacing, typography } from '../../theme';
+import { fontFamily } from '../../theme/tokens';
 
 export function LoginScreen() {
   const { login, register } = useAuth();
@@ -106,6 +107,8 @@ const styles = StyleSheet.create({
   },
   logo: {
     ...typography.title,
+    fontFamily: fontFamily.display,
+    fontWeight: 'normal',
     fontSize: 36,
     letterSpacing: 4,
     color: colors.primary,
