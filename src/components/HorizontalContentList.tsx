@@ -1,5 +1,5 @@
 import React from 'react';
-import { FlatList, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, FlatList, StyleSheet, Text, View } from 'react-native';
 import { colors, spacing, typography } from '../theme';
 import type { Content } from '../types/content';
 import { ContentCard } from './ContentCard';
@@ -11,6 +11,14 @@ interface HorizontalContentListProps {
   emptyLabel?: string;
   isFavorite?: (content: Content) => boolean;
   onToggleFavorite?: (content: Content) => void;
+  /**
+   * True mientras la query todavía no resolvió ni una vez (nada
+   * restaurado de caché persistida, nada fresco todavía) — distinto de
+   * "cargó y está vacía". Mostrá esto en vez de tratar `items.length ===
+   * 0` como sinónimo de "no tenés nada" (confunde "todavía no sabemos" con
+   * "de verdad no hay nada" — ver openspec/changes/persist-cached-content-on-launch).
+   */
+  isLoading?: boolean;
 }
 
 /** Sección horizontal de posters, como en el "Home ideal" del doc. */
@@ -21,8 +29,9 @@ export function HorizontalContentList({
   emptyLabel,
   isFavorite,
   onToggleFavorite,
+  isLoading,
 }: HorizontalContentListProps) {
-  if (items.length === 0 && !emptyLabel) return null;
+  if (items.length === 0 && !emptyLabel && !isLoading) return null;
 
   return (
     <View style={styles.section}>
@@ -30,7 +39,9 @@ export function HorizontalContentList({
         <View style={styles.titleMark} />
         <Text style={[typography.sectionTitle, styles.title]}>{title}</Text>
       </View>
-      {items.length === 0 ? (
+      {isLoading && items.length === 0 ? (
+        <ActivityIndicator color={colors.primary} style={styles.loading} />
+      ) : items.length === 0 ? (
         <Text style={styles.empty}>{emptyLabel}</Text>
       ) : (
         <FlatList
@@ -79,5 +90,8 @@ const styles = StyleSheet.create({
   empty: {
     paddingHorizontal: spacing.md,
     color: colors.muted,
+  },
+  loading: {
+    marginTop: spacing.sm,
   },
 });

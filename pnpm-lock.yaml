@@ -23,9 +23,15 @@ importers:
       '@react-navigation/native-stack':
         specifier: ^7.18.8
         version: 7.18.8(3ac3ed9b30c7f5bfac7a35c9ac70d64e)
-      '@tanstack/react-query':
+      '@tanstack/query-async-storage-persister':
         specifier: ^5.101.4
-        version: 5.101.4(react@19.2.3)
+        version: 5.102.3
+      '@tanstack/react-query':
+        specifier: ^5.102.3
+        version: 5.102.3(react@19.2.3)
+      '@tanstack/react-query-persist-client':
+        specifier: ^5.101.4
+        version: 5.102.3(@tanstack/react-query@5.102.3(react@19.2.3))(react@19.2.3)
       axios:
         specifier: ^1.19.0
         version: 1.19.0
@@ -1159,11 +1165,23 @@ packages:
   '@sinonjs/fake-timers@10.3.0':
     resolution: {integrity: sha512-V4BG07kuYSUkTCSBHG8G8TNhM+F19jXFWnQtzj+we8DrkpSBCee9Z3Ms8yiGer/dlmhe35/Xdgyo3/0rQKg7YA==}
 
-  '@tanstack/query-core@5.101.4':
-    resolution: {integrity: sha512-gNwcvOJcRbLWPOLG/2OBm+zM+Yv+MKsXKEOWC57USuZDEsI71hEErQsiEGx5wX9rzWWkfwM0fVSPoiIFSsxfiw==}
+  '@tanstack/query-async-storage-persister@5.102.3':
+    resolution: {integrity: sha512-gUwd8fT4n1e2BiSxXWgM6FiCOrSagwHsgOsb14m6D/1wvZnJgwZoNVwzzFQ5tXyqPSZQzpRB3zWlqOtS2R+mbw==}
 
-  '@tanstack/react-query@5.101.4':
-    resolution: {integrity: sha512-yRg2pfOCxIs4ZJW3XYYHU/WgtD04FHSnfHlpRT7h7pR77hwkdRG4wxbKe4aq6P0RvXUTBSQpQeadS1SUYUe+KA==}
+  '@tanstack/query-core@5.102.3':
+    resolution: {integrity: sha512-5O2VEceonqC4uaTLUGglb0hgPouWCJ4K1ykVWyeV8aThhdNCzwpwu01bYoaRNJ9mgFUXS7Kf9utJ46ysT8m+bw==}
+
+  '@tanstack/query-persist-client-core@5.102.3':
+    resolution: {integrity: sha512-dIPDgRJCFzIOg1mjUkNm6im5VcMhGtbLUU74/0krOx60+1c/jDS1GRI2/E7THdFdk+255SiqQQ9VHIeE0F0Bnw==}
+
+  '@tanstack/react-query-persist-client@5.102.3':
+    resolution: {integrity: sha512-M3Z3L1k2rvZaMnapkhcvISFotI1ZpZRQRGnZ1YIyYnO4H++H5LYG2aW0EknjLZblC40SSdd5pSYqrCk4b+qhvw==}
+    peerDependencies:
+      '@tanstack/react-query': ^5.102.3
+      react: ^18 || ^19
+
+  '@tanstack/react-query@5.102.3':
+    resolution: {integrity: sha512-nHazxUEUQSGJOswGgSL2DI77f2K75WRCowDgaiyEi0ACocZTFKewTv+A/rJfq6QkuE35rVPff1QUT3ClbaePGQ==}
     peerDependencies:
       react: ^18 || ^19
 
@@ -5315,11 +5333,26 @@ snapshots:
     dependencies:
       '@sinonjs/commons': 3.0.1
 
-  '@tanstack/query-core@5.101.4': {}
-
-  '@tanstack/react-query@5.101.4(react@19.2.3)':
+  '@tanstack/query-async-storage-persister@5.102.3':
     dependencies:
-      '@tanstack/query-core': 5.101.4
+      '@tanstack/query-core': 5.102.3
+      '@tanstack/query-persist-client-core': 5.102.3
+
+  '@tanstack/query-core@5.102.3': {}
+
+  '@tanstack/query-persist-client-core@5.102.3':
+    dependencies:
+      '@tanstack/query-core': 5.102.3
+
+  '@tanstack/react-query-persist-client@5.102.3(@tanstack/react-query@5.102.3(react@19.2.3))(react@19.2.3)':
+    dependencies:
+      '@tanstack/query-persist-client-core': 5.102.3
+      '@tanstack/react-query': 5.102.3(react@19.2.3)
+      react: 19.2.3
+
+  '@tanstack/react-query@5.102.3(react@19.2.3)':
+    dependencies:
+      '@tanstack/query-core': 5.102.3
       react: 19.2.3
 
   '@types/babel__core@7.20.5':

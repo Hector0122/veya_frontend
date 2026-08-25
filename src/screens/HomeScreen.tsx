@@ -60,6 +60,7 @@ export function HomeScreen() {
           emptyLabel="Todavía no agregaste nada a tu lista."
           isFavorite={(content) => isFavorite(content.id)}
           onToggleFavorite={toggleFavorite}
+          isLoading={myList.isLoading}
         />
 
         <HorizontalContentList
@@ -69,6 +70,7 @@ export function HomeScreen() {
           emptyLabel="Calificá o marcá favoritos para recibir recomendaciones."
           isFavorite={(content) => isFavorite(content.id)}
           onToggleFavorite={toggleFavorite}
+          isLoading={recommendations.isLoading}
         />
       </ScrollView>
     </Screen>

@@ -1,5 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { authService } from '../services/auth.service';
+import { queryPersister } from '../services/queryPersister';
 import { useAuthStore } from '../stores/authStore';
 
 /** Login/registro/logout + estado de sesión, todo en un solo hook. */
@@ -32,6 +33,12 @@ export function useAuth() {
     onSettled: () => {
       clearSession();
       queryClient.clear();
+      // queryClient.clear() por sí solo eventualmente se refleja en
+      // AsyncStorage vía el guardado debounced del persister — pero si la
+      // app se cierra en esa ventana, el contenido de esta cuenta queda
+      // en disco y se restauraría antes de la sesión siguiente. Se borra
+      // explícito para que no dependa de ese timing.
+      queryPersister.removeClient();
     },
   });
 
