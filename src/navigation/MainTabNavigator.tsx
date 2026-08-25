@@ -4,7 +4,6 @@ import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { HomeScreen } from '../screens/HomeScreen';
 import { MyListScreen } from '../screens/MyListScreen';
 import { ProfileScreen } from '../screens/ProfileScreen';
-import { SearchScreen } from '../screens/SearchScreen';
 import { colors } from '../theme';
 import { iconSize, fontFamily } from '../theme/tokens';
 import type { MainTabParamList } from './types';
@@ -15,9 +14,12 @@ const Tab = createBottomTabNavigator<MainTabParamList>();
 // un emoji es un glifo a color fijo del sistema y no obedece `color`, así
 // que el tab activo nunca se pintaba de verdad del color de marca.
 // Ver arcd_kit/README.md#iconos.
+//
+// "Buscar" ya no es un tab: era una pantalla con solo el input, sin nada
+// más — ahora vive como barra en Home y se navega ahí como pantalla del
+// stack raíz (igual que "Detalle"). Ver RootNavigator.
 const TAB_ICONS: Record<keyof MainTabParamList, string> = {
   Home: 'home-variant',
-  Buscar: 'magnify',
   MiLista: 'bookmark-multiple-outline',
   Perfil: 'account-circle-outline',
 };
@@ -45,7 +47,6 @@ export function MainTabNavigator() {
       })}
     >
       <Tab.Screen name="Home" component={HomeScreen} options={{ title: 'Inicio' }} />
-      <Tab.Screen name="Buscar" component={SearchScreen} />
       <Tab.Screen name="MiLista" component={MyListScreen} options={{ title: 'Mi lista' }} />
       <Tab.Screen name="Perfil" component={ProfileScreen} />
     </Tab.Navigator>

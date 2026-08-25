@@ -5,6 +5,7 @@ import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from '
 import { ContentCard } from '../components/ContentCard';
 import { Screen } from '../components/Screen';
 import { useMyList } from '../hooks/queries/useMyList';
+import { useTrackingMutations } from '../hooks/queries/useTrackingMutations';
 import type { RootStackParamList } from '../navigation/types';
 import { colors, radius, spacing, typography } from '../theme';
 import { CONTENT_STATUSES, CONTENT_STATUS_LABELS, ContentStatus } from '../types/tracking';
@@ -13,6 +14,7 @@ export function MyListScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const [activeTab, setActiveTab] = useState<ContentStatus>('viendo');
   const { data, isFetching, refetch, isRefetching } = useMyList(activeTab);
+  const { updateTracking } = useTrackingMutations();
 
   return (
     <Screen>
@@ -48,6 +50,10 @@ export function MyListScreen() {
           renderItem={({ item }) => (
             <ContentCard
               content={item.content}
+              isFavorite={item.isFavorite}
+              onToggleFavorite={() =>
+                updateTracking.mutate({ id: item.id, input: { isFavorite: !item.isFavorite } })
+              }
               onPress={() =>
                 navigation.navigate('Detalle', {
                   contentId: item.content.id,

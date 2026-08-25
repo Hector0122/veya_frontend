@@ -11,10 +11,11 @@ import {
 } from 'react-native';
 import { ContentCard } from '../components/ContentCard';
 import { Screen } from '../components/Screen';
+import { useFavorite } from '../hooks/useFavorite';
 import { useDebouncedValue } from '../hooks/useDebouncedValue';
 import { useSearch } from '../hooks/queries/useSearch';
 import type { RootStackParamList } from '../navigation/types';
-import { colors, radius, spacing, typography } from '../theme';
+import { colors, radius, spacing } from '../theme';
 import { formatContentType } from '../utils/format';
 
 export function SearchScreen() {
@@ -22,11 +23,11 @@ export function SearchScreen() {
   const [query, setQuery] = useState('');
   const debouncedQuery = useDebouncedValue(query);
   const { data, isFetching } = useSearch(debouncedQuery);
+  const { isFavorite, toggleFavorite } = useFavorite();
 
   return (
     <Screen>
       <View style={styles.header}>
-        <Text style={typography.title}>Buscar</Text>
         <TextInput
           style={styles.input}
           placeholder="Película, serie o anime…"
@@ -34,6 +35,7 @@ export function SearchScreen() {
           value={query}
           onChangeText={setQuery}
           autoCapitalize="none"
+          autoFocus
           returnKeyType="search"
         />
       </View>
@@ -54,6 +56,8 @@ export function SearchScreen() {
           <ContentCard
             content={item}
             badge={formatContentType(item.type)}
+            isFavorite={isFavorite(item.id)}
+            onToggleFavorite={() => toggleFavorite(item)}
             onPress={() =>
               navigation.navigate('Detalle', { contentId: item.id, title: item.title })
             }
@@ -67,6 +71,7 @@ export function SearchScreen() {
 const styles = StyleSheet.create({
   header: {
     paddingHorizontal: spacing.md,
+    paddingTop: spacing.md,
     marginBottom: spacing.md,
   },
   input: {
@@ -77,7 +82,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm + 4,
     color: colors.text,
-    marginTop: spacing.md,
   },
   spinner: {
     marginTop: spacing.lg,

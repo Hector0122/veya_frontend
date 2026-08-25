@@ -4,6 +4,7 @@ import React from 'react';
 import { SplashScreen } from '../screens/SplashScreen';
 import { LoginScreen } from '../screens/auth/LoginScreen';
 import { DetailScreen } from '../screens/DetailScreen';
+import { SearchScreen } from '../screens/SearchScreen';
 import { useAuthStore } from '../stores/authStore';
 import { colors } from '../theme';
 import { MainTabNavigator } from './MainTabNavigator';
@@ -52,6 +53,11 @@ export function RootNavigator() {
               name="Detalle"
               component={DetailScreen}
               options={({ route }) => ({ title: route.params.title ?? 'Detalle' })}
+            />
+            <Stack.Screen
+              name="Buscar"
+              component={SearchScreen}
+              options={{ title: 'Buscar' }}
             />
           </>
         )}

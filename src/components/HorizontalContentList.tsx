@@ -9,6 +9,8 @@ interface HorizontalContentListProps {
   items: Content[];
   onPressItem: (content: Content) => void;
   emptyLabel?: string;
+  isFavorite?: (content: Content) => boolean;
+  onToggleFavorite?: (content: Content) => void;
 }
 
 /** Sección horizontal de posters, como en el "Home ideal" del doc. */
@@ -17,12 +19,17 @@ export function HorizontalContentList({
   items,
   onPressItem,
   emptyLabel,
+  isFavorite,
+  onToggleFavorite,
 }: HorizontalContentListProps) {
   if (items.length === 0 && !emptyLabel) return null;
 
   return (
     <View style={styles.section}>
-      <Text style={[typography.sectionTitle, styles.title]}>{title}</Text>
+      <View style={styles.titleRow}>
+        <View style={styles.titleMark} />
+        <Text style={[typography.sectionTitle, styles.title]}>{title}</Text>
+      </View>
       {items.length === 0 ? (
         <Text style={styles.empty}>{emptyLabel}</Text>
       ) : (
@@ -33,7 +40,14 @@ export function HorizontalContentList({
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.list}
           renderItem={({ item }) => (
-            <ContentCard content={item} onPress={() => onPressItem(item)} />
+            <ContentCard
+              content={item}
+              onPress={() => onPressItem(item)}
+              isFavorite={isFavorite?.(item)}
+              onToggleFavorite={
+                onToggleFavorite ? () => onToggleFavorite(item) : undefined
+              }
+            />
           )}
         />
       )}
@@ -45,10 +59,20 @@ const styles = StyleSheet.create({
   section: {
     marginBottom: spacing.lg,
   },
-  title: {
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
     marginBottom: spacing.sm,
     paddingHorizontal: spacing.md,
   },
+  titleMark: {
+    width: 3,
+    height: 16,
+    borderRadius: 2,
+    backgroundColor: colors.accent,
+  },
+  title: {},
   list: {
     paddingHorizontal: spacing.md,
   },

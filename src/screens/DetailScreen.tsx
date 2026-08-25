@@ -15,6 +15,7 @@ import { StatusBadge } from '../components/StatusBadge';
 import { useContentDetail } from '../hooks/queries/useContentDetail';
 import { useMyList } from '../hooks/queries/useMyList';
 import { useTrackingMutations } from '../hooks/queries/useTrackingMutations';
+import { useFavorite } from '../hooks/useFavorite';
 import type { RootStackParamList } from '../navigation/types';
 import { colors, radius, spacing, typography } from '../theme';
 import { CONTENT_STATUSES, CONTENT_STATUS_LABELS, ContentStatus } from '../types/tracking';
@@ -25,6 +26,7 @@ export function DetailScreen() {
   const { data: content, isLoading } = useContentDetail(params.contentId);
   const myList = useMyList();
   const { addToList, updateTracking, removeFromList } = useTrackingMutations();
+  const { isFavorite, toggleFavorite } = useFavorite();
   const [pendingSeason, setPendingSeason] = useState<string | null>(null);
   const [pendingEpisode, setPendingEpisode] = useState<string | null>(null);
 
@@ -48,23 +50,6 @@ export function DetailScreen() {
       updateTracking.mutate({ id: trackingEntry.id, input: { status } });
     } else {
       addToList.mutate({ contentId: content.id, status });
-    }
-  };
-
-  const toggleFavorite = () => {
-    if (trackingEntry) {
-      updateTracking.mutate({
-        id: trackingEntry.id,
-        input: { isFavorite: !trackingEntry.isFavorite },
-      });
-    } else {
-      addToList.mutate(
-        { contentId: content.id },
-        {
-          onSuccess: (created) =>
-            updateTracking.mutate({ id: created.id, input: { isFavorite: true } }),
-        },
-      );
     }
   };
 
@@ -110,9 +95,12 @@ export function DetailScreen() {
           <Text style={styles.genres}>{formatGenres(content.genres, 5)}</Text>
 
           <View style={styles.actionsRow}>
-            <Pressable onPress={toggleFavorite} style={styles.favoriteButton}>
+            <Pressable
+              onPress={() => toggleFavorite(content)}
+              style={styles.favoriteButton}
+            >
               <Text style={styles.favoriteIcon}>
-                {trackingEntry?.isFavorite ? '♥' : '♡'}
+                {isFavorite(content.id) ? '♥' : '♡'}
               </Text>
             </Pressable>
             <StarRating value={trackingEntry?.rating ?? null} onChange={setRating} />

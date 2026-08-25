@@ -14,9 +14,17 @@ interface ContentCardProps {
   content: Content;
   onPress: () => void;
   badge?: string;
+  isFavorite?: boolean;
+  onToggleFavorite?: () => void;
 }
 
-export function ContentCard({ content, onPress, badge }: ContentCardProps) {
+export function ContentCard({
+  content,
+  onPress,
+  badge,
+  isFavorite,
+  onToggleFavorite,
+}: ContentCardProps) {
   const scale = useSharedValue(1);
   const animatedStyle = useAnimatedStyle(() => ({
     transform: [{ scale: scale.value }],
@@ -47,6 +55,18 @@ export function ContentCard({ content, onPress, badge }: ContentCardProps) {
           <View style={styles.badge}>
             <Text style={styles.badgeText}>{badge}</Text>
           </View>
+        ) : null}
+        {onToggleFavorite ? (
+          <Pressable
+            hitSlop={8}
+            onPress={(e) => {
+              e.stopPropagation();
+              onToggleFavorite();
+            }}
+            style={styles.favorite}
+          >
+            <Text style={styles.favoriteIcon}>{isFavorite ? '♥' : '♡'}</Text>
+          </Pressable>
         ) : null}
       </View>
       <Text style={typography.cardTitle} numberOfLines={2}>
@@ -96,5 +116,21 @@ const styles = StyleSheet.create({
     color: colors.accent,
     fontSize: 11,
     fontWeight: '600',
+  },
+  favorite: {
+    position: 'absolute',
+    top: spacing.xs,
+    right: spacing.xs,
+    width: 26,
+    height: 26,
+    borderRadius: radius.pill,
+    backgroundColor: 'rgba(11,15,20,0.65)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  favoriteIcon: {
+    color: colors.danger,
+    fontSize: 15,
+    lineHeight: 15,
   },
 });
