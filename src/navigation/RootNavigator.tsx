@@ -1,10 +1,11 @@
 import { NavigationContainer, DarkTheme } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import React from 'react';
+import React, { useEffect } from 'react';
 import { SplashScreen } from '../screens/SplashScreen';
 import { LoginScreen } from '../screens/auth/LoginScreen';
 import { DetailScreen } from '../screens/DetailScreen';
 import { SearchScreen } from '../screens/SearchScreen';
+import { checkForUpdate } from '../services/updates';
 import { useAuthStore } from '../stores/authStore';
 import { colors } from '../theme';
 import { MainTabNavigator } from './MainTabNavigator';
@@ -27,6 +28,11 @@ const navigationTheme = {
 export function RootNavigator() {
   const hasHydrated = useAuthStore((s) => s.hasHydrated);
   const isAuthenticated = Boolean(useAuthStore((s) => s.accessToken));
+
+  // Al entrar (igual que Vaulta): avisa si hay un APK más nuevo en GitHub.
+  useEffect(() => {
+    if (isAuthenticated) checkForUpdate();
+  }, [isAuthenticated]);
 
   if (!hasHydrated) {
     return <SplashScreen />;

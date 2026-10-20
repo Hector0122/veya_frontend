@@ -9,6 +9,8 @@ export function useTrackingMutations() {
 
   const invalidateLists = () => {
     queryClient.invalidateQueries({ queryKey: ['myList'] });
+    // Un libro marcado como leído sale de "para leer después".
+    queryClient.invalidateQueries({ queryKey: ['savedBooks'] });
   };
 
   const addToList = useMutation({

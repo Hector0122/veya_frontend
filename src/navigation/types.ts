@@ -10,7 +10,7 @@ export type RootStackParamList = {
   Login: undefined;
   Main: NavigatorScreenParams<MainTabParamList>;
   Detalle: { contentId: string; title?: string };
-  Buscar: undefined;
+  Buscar: { mode?: 'books' } | undefined;
 };
 
 declare global {

@@ -14,6 +14,8 @@ interface ContentCardProps {
   content: Content;
   onPress: () => void;
   badge?: string;
+  /** Línea secundaria bajo el título (p. ej. el autor de un libro). */
+  subtitle?: string | null;
   isFavorite?: boolean;
   onToggleFavorite?: () => void;
 }
@@ -22,6 +24,7 @@ export function ContentCard({
   content,
   onPress,
   badge,
+  subtitle,
   isFavorite,
   onToggleFavorite,
 }: ContentCardProps) {
@@ -72,6 +75,11 @@ export function ContentCard({
       <Text style={typography.cardTitle} numberOfLines={2}>
         {content.title}
       </Text>
+      {subtitle ? (
+        <Text style={styles.subtitle} numberOfLines={1}>
+          {subtitle}
+        </Text>
+      ) : null}
     </AnimatedPressable>
   );
 }
@@ -92,6 +100,11 @@ const styles = StyleSheet.create({
   poster: {
     width: '100%',
     height: '100%',
+  },
+  subtitle: {
+    ...typography.caption,
+    fontSize: 12,
+    marginTop: 2,
   },
   posterPlaceholder: {
     alignItems: 'center',

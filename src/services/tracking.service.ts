@@ -7,12 +7,15 @@ import type {
 } from '../types/tracking';
 
 export const trackingService = {
-  list: (filters?: { status?: ContentStatus; favorite?: boolean }) =>
+  // Sin `type` el backend devuelve solo lo audiovisual; `type: 'book'`
+  // devuelve los libros leídos.
+  list: (filters?: { status?: ContentStatus; favorite?: boolean; type?: 'book' }) =>
     api
       .get<UserContent[]>('/tracking', {
         params: {
           status: filters?.status,
           favorite: filters?.favorite,
+          type: filters?.type,
         },
       })
       .then((r) => r.data),

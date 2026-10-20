@@ -3,6 +3,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import React, { useMemo } from 'react';
 import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import { BookRecommendationsSection } from '../components/BookRecommendationsSection';
 import { HorizontalContentList } from '../components/HorizontalContentList';
 import { Screen } from '../components/Screen';
 import { useFavorite } from '../hooks/useFavorite';
@@ -71,6 +72,11 @@ export function HomeScreen() {
           isFavorite={(content) => isFavorite(content.id)}
           onToggleFavorite={toggleFavorite}
           isLoading={recommendations.isLoading}
+        />
+
+        <BookRecommendationsSection
+          onPressBook={openDetail}
+          onMarkBooksRead={() => navigation.navigate('Buscar', { mode: 'books' })}
         />
       </ScrollView>
     </Screen>

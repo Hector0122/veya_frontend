@@ -23,7 +23,13 @@ export const queryPersister = createAsyncStoragePersister({
 // crecer el storage sin ningún beneficio visible. Si agregás una query
 // nueva bajo uno de estos prefijos, ahora se persiste también — es
 // intencional, revisá si de verdad corresponde.
-const PERSISTED_QUERY_KEY_PREFIXES = ['myList', 'recommendations', 'contentDetail', 'me'];
+const PERSISTED_QUERY_KEY_PREFIXES = [
+  'myList',
+  'recommendations',
+  'contentDetail',
+  'me',
+  'savedBooks',
+];
 
 function isPersistedQuery(query: Query): boolean {
   const [firstKey] = query.queryKey;

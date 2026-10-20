@@ -34,7 +34,10 @@ export interface UserContent {
 
 export interface CreateTrackingInput {
   contentId: string;
+  /** Ignorado para libros: un libro registrado siempre es un libro leído. */
   status?: ContentStatus;
+  rating?: number;
+  isFavorite?: boolean;
   notes?: string;
 }
 

@@ -1,5 +1,5 @@
-export type ContentSource = 'tmdb' | 'anilist';
-export type ContentType = 'movie' | 'series' | 'anime';
+export type ContentSource = 'tmdb' | 'anilist' | 'openlibrary';
+export type ContentType = 'movie' | 'series' | 'anime' | 'book';
 
 export interface Content {
   id: string;
