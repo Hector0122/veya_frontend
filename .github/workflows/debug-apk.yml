@@ -1,0 +1,40 @@
+# Compila un APK *debug* para probar en Waydroid/dispositivo sin instalar el
+# SDK de Android localmente. El APK debug no trae el JS empaquetado: lo carga
+# desde Metro (`npx react-native start` + `adb reverse tcp:8081 tcp:8081`),
+# así que solo hace falta recompilarlo al agregar o actualizar libs nativas.
+#
+# Se lanza a mano desde la pestaña Actions ("Run workflow") o con
+# `gh workflow run debug-apk.yml`. El APK queda como artefacto del run.
+name: debug-apk
+
+on:
+  workflow_dispatch:
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.6.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+      - uses: gradle/actions/setup-gradle@v4
+      - run: pnpm install --frozen-lockfile
+      - name: Compilar APK debug
+        working-directory: android
+        # x86_64 para Waydroid/emulador, arm64 para un celular físico: compilar
+        # solo esas dos acelera bastante el build frente a las 4 por defecto.
+        run: ./gradlew assembleDebug -PreactNativeArchitectures=x86_64,arm64-v8a
+      - uses: actions/upload-artifact@v4
+        with:
+          name: veya-debug-apk
+          path: android/app/build/outputs/apk/debug/*.apk
+          retention-days: 14
