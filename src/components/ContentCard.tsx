@@ -18,6 +18,11 @@ interface ContentCardProps {
   subtitle?: string | null;
   isFavorite?: boolean;
   onToggleFavorite?: () => void;
+  /**
+   * Ancho fijo para usar la tarjeta en una grilla (ver `useGridCardWidth`).
+   * Sin él es la tarjeta de 120 px con margen derecho de las filas horizontales.
+   */
+  width?: number;
 }
 
 export function ContentCard({
@@ -27,7 +32,11 @@ export function ContentCard({
   subtitle,
   isFavorite,
   onToggleFavorite,
+  width,
 }: ContentCardProps) {
+  const sizeStyle = width ? { width, marginRight: 0 } : null;
+  const posterSizeStyle = width ? { width, height: Math.round(width * 1.5) } : null;
+
   const scale = useSharedValue(1);
   const animatedStyle = useAnimatedStyle(() => ({
     transform: [{ scale: scale.value }],
@@ -42,9 +51,9 @@ export function ContentCard({
       onPressOut={() => {
         scale.value = withSpring(1, motion.spring.press);
       }}
-      style={[styles.container, animatedStyle]}
+      style={[styles.container, sizeStyle, animatedStyle]}
     >
-      <View style={styles.posterWrapper}>
+      <View style={[styles.posterWrapper, posterSizeStyle]}>
         {content.posterUrl ? (
           <Image source={{ uri: content.posterUrl }} style={styles.poster} />
         ) : (

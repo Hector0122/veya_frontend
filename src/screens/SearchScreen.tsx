@@ -11,6 +11,7 @@ import {
   View,
 } from 'react-native';
 import { ContentCard } from '../components/ContentCard';
+import { useGridCardWidth } from '../hooks/useGridCardWidth';
 import { Screen } from '../components/Screen';
 import { useFavorite } from '../hooks/useFavorite';
 import { useDebouncedValue } from '../hooks/useDebouncedValue';
@@ -28,6 +29,7 @@ const MODES: { mode: SearchMode; label: string; placeholder: string }[] = [
 ];
 
 export function SearchScreen() {
+  const cardWidth = useGridCardWidth();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { params } = useRoute<RouteProp<RootStackParamList, 'Buscar'>>();
   const [mode, setMode] = useState<SearchMode>(params?.mode ?? 'all');
@@ -81,6 +83,7 @@ export function SearchScreen() {
         columnWrapperStyle={styles.row}
         renderItem={({ item }) => (
           <ContentCard
+            width={cardWidth}
             content={item}
             // En libros el badge diría siempre "Libro"; el autor dice más.
             badge={item.type === 'book' ? undefined : formatContentType(item.type)}

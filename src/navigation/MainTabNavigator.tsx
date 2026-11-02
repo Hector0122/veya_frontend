@@ -5,7 +5,7 @@ import { HomeScreen } from '../screens/HomeScreen';
 import { MyListScreen } from '../screens/MyListScreen';
 import { ProfileScreen } from '../screens/ProfileScreen';
 import { colors } from '../theme';
-import { iconSize, fontFamily } from '../theme/tokens';
+import { iconSize } from '../theme/tokens';
 import type { MainTabParamList } from './types';
 
 const Tab = createBottomTabNavigator<MainTabParamList>();
@@ -39,7 +39,7 @@ export function MainTabNavigator() {
           backgroundColor: colors.surface,
           borderTopColor: colors.border,
         },
-        tabBarLabelStyle: { fontFamily: fontFamily.mono, fontSize: 10 },
+        tabBarLabelStyle: { fontSize: 11, fontWeight: '600' },
         // TabIcon está definido fuera del render; esta arrow function solo le
         // pasa props (patrón estándar de tabBarIcon en react-navigation).
         // eslint-disable-next-line react/no-unstable-nested-components

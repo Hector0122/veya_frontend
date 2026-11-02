@@ -3,6 +3,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import React, { useState } from 'react';
 import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { ContentCard } from '../components/ContentCard';
+import { useGridCardWidth } from '../hooks/useGridCardWidth';
 import { Screen } from '../components/Screen';
 import { useMyList } from '../hooks/queries/useMyList';
 import { useReadBooks, useSavedBooks } from '../hooks/queries/useBooks';
@@ -32,6 +33,7 @@ export function MyListScreen() {
   const [bookTab, setBookTab] = useState<BookTab>('leidos');
   const { data, isFetching, refetch, isRefetching } = useMyList(activeTab);
   const { updateTracking } = useTrackingMutations();
+  const cardWidth = useGridCardWidth();
 
   return (
     <Screen>
@@ -84,6 +86,7 @@ export function MyListScreen() {
               columnWrapperStyle={styles.row}
               renderItem={({ item }) => (
                 <ContentCard
+                  width={cardWidth}
                   content={item.content}
                   isFavorite={item.isFavorite}
                   onToggleFavorite={() =>
@@ -111,6 +114,7 @@ function BooksList({ tab, onChangeTab }: { tab: BookTab; onChangeTab: (tab: Book
   const read = useReadBooks();
   const saved = useSavedBooks();
   const { updateTracking } = useTrackingMutations();
+  const cardWidth = useGridCardWidth();
   const query = tab === 'leidos' ? read : saved;
 
   const openDetail = (content: { id: string; title: string }) =>
@@ -150,6 +154,7 @@ function BooksList({ tab, onChangeTab }: { tab: BookTab; onChangeTab: (tab: Book
             columnWrapperStyle={styles.row}
             renderItem={({ item }) => (
               <ContentCard
+                width={cardWidth}
                 content={item.content}
                 badge={item.rating ? `★ ${item.rating}` : undefined}
                 subtitle={formatAuthors(item.content.metadata)}
@@ -177,6 +182,7 @@ function BooksList({ tab, onChangeTab }: { tab: BookTab; onChangeTab: (tab: Book
           columnWrapperStyle={styles.row}
           renderItem={({ item }) => (
             <ContentCard
+              width={cardWidth}
               content={item.content}
               subtitle={formatAuthors(item.content.metadata)}
               onPress={() => openDetail(item.content)}
