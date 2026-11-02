@@ -88,8 +88,8 @@ export function SearchScreen() {
             // En libros el badge diría siempre "Libro"; el autor dice más.
             badge={item.type === 'book' ? undefined : formatContentType(item.type)}
             subtitle={item.type === 'book' ? formatAuthors(item.metadata) : undefined}
-            // El favorito de un libro solo tiene sentido si ya está leído: se
-            // maneja en su detalle.
+            // El favorito de un libro solo tiene sentido si ya está en la
+            // lista: se maneja en su detalle.
             isFavorite={item.type === 'book' ? undefined : isFavorite(item.id)}
             onToggleFavorite={item.type === 'book' ? undefined : () => toggleFavorite(item)}
             onPress={() =>

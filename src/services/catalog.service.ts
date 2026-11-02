@@ -36,9 +36,6 @@ export const catalogService = {
       })
       .then((r) => r.data),
 
-  savedBooks: () =>
-    api.get<BookSuggestion[]>('/catalog/recommendations/books/saved').then((r) => r.data),
-
   updateBookSuggestion: (id: string, status: 'saved' | 'dismissed') =>
     api
       .patch<BookSuggestion>(`/catalog/recommendations/books/${id}`, { status })

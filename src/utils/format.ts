@@ -28,3 +28,12 @@ export function formatAuthors(metadata: Record<string, unknown> | null, max = 2)
   if (names.length === 0) return null;
   return names.length > max ? `${names.slice(0, max).join(', ')} y otros` : names.join(', ');
 }
+
+/** Porcentaje leído de un libro (0–100), o null si no se sabe el total. */
+export function readingPercent(row: {
+  currentPage: number | null;
+  totalPages: number | null;
+}): number | null {
+  if (!row.totalPages) return null;
+  return Math.min(100, Math.round(((row.currentPage ?? 0) / row.totalPages) * 100));
+}

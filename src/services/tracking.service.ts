@@ -8,7 +8,7 @@ import type {
 
 export const trackingService = {
   // Sin `type` el backend devuelve solo lo audiovisual; `type: 'book'`
-  // devuelve los libros leídos.
+  // devuelve los libros en todos sus estados de lectura.
   list: (filters?: { status?: ContentStatus; favorite?: boolean; type?: 'book' }) =>
     api
       .get<UserContent[]>('/tracking', {

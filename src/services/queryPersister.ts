@@ -28,7 +28,6 @@ const PERSISTED_QUERY_KEY_PREFIXES = [
   'recommendations',
   'contentDetail',
   'me',
-  'savedBooks',
 ];
 
 function isPersistedQuery(query: Query): boolean {

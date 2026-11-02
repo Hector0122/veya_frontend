@@ -16,6 +16,17 @@ export const CONTENT_STATUS_LABELS: Record<ContentStatus, string> = {
   abandonado: 'Abandonado',
 };
 
+/** Los mismos estados, dichos como se dicen de un libro. */
+export const BOOK_STATUS_LABELS: Record<ContentStatus, string> = {
+  pendiente: 'Quiero leer',
+  viendo: 'Leyendo',
+  terminado: 'Leído',
+  abandonado: 'Abandonado',
+};
+
+/** Orden de las pestañas de libros: primero lo que se está leyendo. */
+export const BOOK_STATUSES: ContentStatus[] = ['viendo', 'pendiente', 'terminado', 'abandonado'];
+
 export interface UserContent {
   id: string;
   userId: string;
@@ -25,6 +36,9 @@ export interface UserContent {
   rating: number | null;
   currentSeason: number | null;
   currentEpisode: number | null;
+  /** Solo libros. */
+  currentPage: number | null;
+  totalPages: number | null;
   addedAt: string;
   updatedAt: string;
   finishedAt: string | null;
@@ -34,7 +48,7 @@ export interface UserContent {
 
 export interface CreateTrackingInput {
   contentId: string;
-  /** Ignorado para libros: un libro registrado siempre es un libro leído. */
+  /** Sin estado, un libro se registra como leído. */
   status?: ContentStatus;
   rating?: number;
   isFavorite?: boolean;
@@ -47,5 +61,7 @@ export interface UpdateTrackingInput {
   rating?: number;
   currentSeason?: number;
   currentEpisode?: number;
+  currentPage?: number;
+  totalPages?: number;
   notes?: string;
 }

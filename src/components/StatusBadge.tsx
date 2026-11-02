@@ -1,15 +1,16 @@
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { colors, radius, spacing } from '../theme';
-import { CONTENT_STATUS_LABELS, ContentStatus } from '../types/tracking';
+import { BOOK_STATUS_LABELS, CONTENT_STATUS_LABELS, ContentStatus } from '../types/tracking';
 
-export function StatusBadge({ status }: { status: ContentStatus }) {
+export function StatusBadge({ status, isBook = false }: { status: ContentStatus; isBook?: boolean }) {
   const color = colors.status[status];
+  const labels = isBook ? BOOK_STATUS_LABELS : CONTENT_STATUS_LABELS;
 
   return (
     <View style={[styles.container, { borderColor: color }]}>
       <View style={[styles.dot, { backgroundColor: color }]} />
-      <Text style={[styles.label, { color }]}>{CONTENT_STATUS_LABELS[status]}</Text>
+      <Text style={[styles.label, { color }]}>{labels[status]}</Text>
     </View>
   );
 }

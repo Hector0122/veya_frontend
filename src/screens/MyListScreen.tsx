@@ -6,31 +6,49 @@ import { ContentCard } from '../components/ContentCard';
 import { useGridCardWidth } from '../hooks/useGridCardWidth';
 import { Screen } from '../components/Screen';
 import { useMyList } from '../hooks/queries/useMyList';
-import { useReadBooks, useSavedBooks } from '../hooks/queries/useBooks';
+import { useMyBooks } from '../hooks/queries/useBooks';
 import { useTrackingMutations } from '../hooks/queries/useTrackingMutations';
 import type { RootStackParamList } from '../navigation/types';
 import { colors, radius, spacing, typography } from '../theme';
-import { CONTENT_STATUSES, CONTENT_STATUS_LABELS, ContentStatus } from '../types/tracking';
-import { formatAuthors } from '../utils/format';
+import {
+  BOOK_STATUSES,
+  BOOK_STATUS_LABELS,
+  CONTENT_STATUSES,
+  CONTENT_STATUS_LABELS,
+  ContentStatus,
+  UserContent,
+} from '../types/tracking';
+import { formatAuthors, readingPercent } from '../utils/format';
 
 type ListKind = 'audiovisual' | 'books';
-type BookTab = 'leidos' | 'paraLeer';
 
 const KINDS: { kind: ListKind; label: string }[] = [
   { kind: 'audiovisual', label: 'Películas y series' },
   { kind: 'books', label: 'Libros' },
 ];
 
-const BOOK_TABS: { tab: BookTab; label: string }[] = [
-  { tab: 'leidos', label: 'Leídos' },
-  { tab: 'paraLeer', label: 'Para leer' },
-];
+const BOOK_EMPTY_TEXT: Record<ContentStatus, string> = {
+  viendo: 'Marcá un libro como "Leyendo" desde su detalle para seguir tu avance.',
+  pendiente: 'Guardá libros recomendados en Inicio o desde Buscar para leerlos después.',
+  terminado: 'Marcá libros que leíste desde Buscar para mejorar tus recomendaciones.',
+  abandonado: 'Nada por acá todavía.',
+};
+
+/** Lo que dice la esquina de la tarjeta: avance si se está leyendo,
+ *  calificación si ya se leyó. */
+function bookBadge(row: UserContent): string | undefined {
+  if (row.status === 'viendo') {
+    const percent = readingPercent(row);
+    return percent !== null ? `${percent}%` : undefined;
+  }
+  return row.rating ? `★ ${row.rating}` : undefined;
+}
 
 export function MyListScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const [kind, setKind] = useState<ListKind>('audiovisual');
   const [activeTab, setActiveTab] = useState<ContentStatus>('viendo');
-  const [bookTab, setBookTab] = useState<BookTab>('leidos');
+  const [bookTab, setBookTab] = useState<ContentStatus>('viendo');
   const { data, isFetching, refetch, isRefetching } = useMyList(activeTab);
   const { updateTracking } = useTrackingMutations();
   const cardWidth = useGridCardWidth();
@@ -108,84 +126,66 @@ export function MyListScreen() {
   );
 }
 
-/** Libros: los marcados como leídos y los guardados "para leer después". */
-function BooksList({ tab, onChangeTab }: { tab: BookTab; onChangeTab: (tab: BookTab) => void }) {
+/** Libros por estado de lectura. Una sola query y se filtra acá: son pocos y
+ *  así cambiar de pestaña es instantáneo. */
+function BooksList({
+  tab,
+  onChangeTab,
+}: {
+  tab: ContentStatus;
+  onChangeTab: (tab: ContentStatus) => void;
+}) {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
-  const read = useReadBooks();
-  const saved = useSavedBooks();
+  const books = useMyBooks();
   const { updateTracking } = useTrackingMutations();
   const cardWidth = useGridCardWidth();
-  const query = tab === 'leidos' ? read : saved;
-
-  const openDetail = (content: { id: string; title: string }) =>
-    navigation.navigate('Detalle', { contentId: content.id, title: content.title });
+  const rows = (books.data ?? []).filter((row) => row.status === tab);
 
   return (
     <>
       <View style={styles.tabs}>
-        {BOOK_TABS.map((t) => (
+        {BOOK_STATUSES.map((status) => (
           <Pressable
-            key={t.tab}
-            onPress={() => onChangeTab(t.tab)}
-            style={[styles.tab, tab === t.tab && styles.tabActive]}
+            key={status}
+            onPress={() => onChangeTab(status)}
+            style={[styles.tab, tab === status && styles.tabActive]}
           >
-            <Text style={[styles.tabLabel, tab === t.tab && styles.tabLabelActive]}>
-              {t.label}
+            <Text style={[styles.tabLabel, tab === status && styles.tabLabelActive]}>
+              {BOOK_STATUS_LABELS[status]}
             </Text>
           </Pressable>
         ))}
       </View>
 
-      {query.isFetching && !query.isRefetching && !query.data ? (
+      {books.isFetching && !books.isRefetching && !books.data ? (
         <ActivityIndicator color={colors.primary} style={styles.spinner} />
-      ) : tab === 'leidos' ? (
-        (read.data ?? []).length === 0 ? (
-          <Text style={styles.emptyText}>
-            Marcá libros que leíste desde Buscar para mejorar tus recomendaciones.
-          </Text>
-        ) : (
-          <FlatList
-            data={read.data ?? []}
-            keyExtractor={(row) => row.id}
-            numColumns={3}
-            onRefresh={read.refetch}
-            refreshing={read.isRefetching}
-            contentContainerStyle={styles.list}
-            columnWrapperStyle={styles.row}
-            renderItem={({ item }) => (
-              <ContentCard
-                width={cardWidth}
-                content={item.content}
-                badge={item.rating ? `★ ${item.rating}` : undefined}
-                subtitle={formatAuthors(item.content.metadata)}
-                isFavorite={item.isFavorite}
-                onToggleFavorite={() =>
-                  updateTracking.mutate({ id: item.id, input: { isFavorite: !item.isFavorite } })
-                }
-                onPress={() => openDetail(item.content)}
-              />
-            )}
-          />
-        )
-      ) : (saved.data ?? []).length === 0 ? (
-        <Text style={styles.emptyText}>
-          Guardá libros recomendados en Inicio para leerlos después.
-        </Text>
+      ) : rows.length === 0 ? (
+        <Text style={styles.emptyText}>{BOOK_EMPTY_TEXT[tab]}</Text>
       ) : (
         <FlatList
-          data={saved.data ?? []}
-          keyExtractor={(s) => s.id}
+          data={rows}
+          keyExtractor={(row) => row.id}
           numColumns={3}
-          onRefresh={saved.refetch}
-          refreshing={saved.isRefetching}
+          onRefresh={books.refetch}
+          refreshing={books.isRefetching}
           contentContainerStyle={styles.list}
           columnWrapperStyle={styles.row}
           renderItem={({ item }) => (
             <ContentCard
               width={cardWidth}
               content={item.content}
+              badge={bookBadge(item)}
               subtitle={formatAuthors(item.content.metadata)}
-              onPress={() => openDetail(item.content)}
+              isFavorite={item.isFavorite}
+              onToggleFavorite={() =>
+                updateTracking.mutate({ id: item.id, input: { isFavorite: !item.isFavorite } })
+              }
+              onPress={() =>
+                navigation.navigate('Detalle', {
+                  contentId: item.content.id,
+                  title: item.content.title,
+                })
+              }
             />
           )}
         />
@@ -224,7 +224,12 @@ const styles = StyleSheet.create({
   kindLabelActive: { color: colors.text },
   tabLabelActive: { color: colors.text },
   spinner: { marginTop: spacing.xl },
-  emptyText: { color: colors.muted, textAlign: 'center', marginTop: spacing.xl },
+  emptyText: {
+    color: colors.muted,
+    textAlign: 'center',
+    marginTop: spacing.xl,
+    paddingHorizontal: spacing.lg,
+  },
   list: { paddingHorizontal: spacing.md, paddingBottom: spacing.xxl },
   row: { justifyContent: 'flex-start', gap: spacing.sm },
 });

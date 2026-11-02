@@ -7,27 +7,42 @@ import {
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   View,
 } from 'react-native';
+import Toast from 'react-native-toast-message';
 import { Screen } from '../components/Screen';
 import { StarRating } from '../components/StarRating';
 import { StatusBadge } from '../components/StatusBadge';
 import { useContentDetail } from '../hooks/queries/useContentDetail';
 import { useMyList } from '../hooks/queries/useMyList';
-import { useReadBooks } from '../hooks/queries/useBooks';
+import { useMyBooks } from '../hooks/queries/useBooks';
 import { useTrackingMutations } from '../hooks/queries/useTrackingMutations';
 import { useFavorite } from '../hooks/useFavorite';
 import type { RootStackParamList } from '../navigation/types';
 import { colors, radius, spacing, typography } from '../theme';
-import { CONTENT_STATUSES, CONTENT_STATUS_LABELS, ContentStatus } from '../types/tracking';
-import { formatAuthors, formatContentType, formatGenres, formatYear } from '../utils/format';
+import {
+  BOOK_STATUSES,
+  BOOK_STATUS_LABELS,
+  CONTENT_STATUSES,
+  CONTENT_STATUS_LABELS,
+  ContentStatus,
+  UserContent,
+} from '../types/tracking';
+import {
+  formatAuthors,
+  formatContentType,
+  formatGenres,
+  formatYear,
+  readingPercent,
+} from '../utils/format';
 
 export function DetailScreen() {
   const { params } = useRoute<RouteProp<RootStackParamList, 'Detalle'>>();
   const { data: content, isLoading } = useContentDetail(params.contentId);
   const myList = useMyList();
-  // Los libros leídos viven en su propia lista (GET /tracking?type=book).
-  const readBooks = useReadBooks();
+  // Los libros viven en su propia lista (GET /tracking?type=book).
+  const myBooks = useMyBooks();
   const { addToList, updateTracking, removeFromList } = useTrackingMutations();
   const { isFavorite, toggleFavorite } = useFavorite();
   const [pendingSeason, setPendingSeason] = useState<string | null>(null);
@@ -37,8 +52,8 @@ export function DetailScreen() {
 
   const trackingEntry = useMemo(
     () =>
-      (isBook ? readBooks.data : myList.data)?.find((row) => row.contentId === params.contentId),
-    [isBook, readBooks.data, myList.data, params.contentId],
+      (isBook ? myBooks.data : myList.data)?.find((row) => row.contentId === params.contentId),
+    [isBook, myBooks.data, myList.data, params.contentId],
   );
 
   const isSeries = content?.type === 'series' || content?.type === 'anime';
@@ -63,7 +78,7 @@ export function DetailScreen() {
     if (trackingEntry) {
       updateTracking.mutate({ id: trackingEntry.id, input: { rating } });
     } else if (isBook) {
-      // Calificar un libro es marcarlo como leído: un solo request.
+      // Calificar un libro sin estado es marcarlo como leído: un solo request.
       addToList.mutate({ contentId: content.id, rating });
     } else {
       addToList.mutate(
@@ -75,7 +90,7 @@ export function DetailScreen() {
     }
   };
 
-  // Un libro sin leer no tiene favorito: el corazón aparece al marcarlo leído.
+  // Un libro fuera de la lista no tiene favorito: el corazón aparece al agregarlo.
   const showFavorite = !isBook || Boolean(trackingEntry);
   const onToggleFavorite = () => {
     if (isBook && trackingEntry) {
@@ -132,30 +147,35 @@ export function DetailScreen() {
             <Text style={styles.overview}>{content.overview}</Text>
           ) : null}
 
-          {isBook ? null : (
-            <>
-              <Text style={[typography.sectionTitle, styles.blockTitle]}>Estado</Text>
-              <View style={styles.statusRow}>
-                {CONTENT_STATUSES.map((status) => (
-                  <Pressable
-                    key={status}
-                    onPress={() => changeStatus(status)}
-                    style={styles.statusChipWrapper}
-                  >
-                    {trackingEntry?.status === status ? (
-                      <StatusBadge status={status} />
-                    ) : (
-                      <View style={styles.statusChip}>
-                        <Text style={styles.statusChipLabel}>
-                          {CONTENT_STATUS_LABELS[status]}
-                        </Text>
-                      </View>
-                    )}
-                  </Pressable>
-                ))}
-              </View>
-            </>
-          )}
+          <Text style={[typography.sectionTitle, styles.blockTitle]}>Estado</Text>
+          <View style={styles.statusRow}>
+            {(isBook ? BOOK_STATUSES : CONTENT_STATUSES).map((status) => (
+              <Pressable
+                key={status}
+                onPress={() => changeStatus(status)}
+                style={styles.statusChipWrapper}
+              >
+                {trackingEntry?.status === status ? (
+                  <StatusBadge status={status} isBook={isBook} />
+                ) : (
+                  <View style={styles.statusChip}>
+                    <Text style={styles.statusChipLabel}>
+                      {(isBook ? BOOK_STATUS_LABELS : CONTENT_STATUS_LABELS)[status]}
+                    </Text>
+                  </View>
+                )}
+              </Pressable>
+            ))}
+          </View>
+
+          {trackingEntry && isBook && trackingEntry.status !== 'pendiente' ? (
+            // La key reinicia los campos cuando el servidor devuelve otro avance.
+            <BookProgress
+              key={`${trackingEntry.currentPage}/${trackingEntry.totalPages}`}
+              entry={trackingEntry}
+              onSave={(input) => updateTracking.mutate({ id: trackingEntry.id, input })}
+            />
+          ) : null}
 
           {trackingEntry && isSeries ? (
             <>
@@ -185,23 +205,97 @@ export function DetailScreen() {
               style={styles.removeButton}
               onPress={() => removeFromList.mutate(trackingEntry.id)}
             >
-              <Text style={styles.removeLabel}>
-                {isBook ? 'Quitar de leídos' : 'Quitar de mi lista'}
-              </Text>
+              <Text style={styles.removeLabel}>Quitar de mi lista</Text>
             </Pressable>
           ) : (
             <Pressable
               style={styles.addButton}
-              onPress={() => addToList.mutate({ contentId: content.id })}
+              onPress={() =>
+                addToList.mutate({
+                  contentId: content.id,
+                  ...(isBook ? { status: 'pendiente' as const } : {}),
+                })
+              }
             >
               <Text style={styles.addLabel}>
-                {isBook ? 'Marcar como leído' : 'Agregar a mi lista'}
+                {isBook ? 'Agregar a Quiero leer' : 'Agregar a mi lista'}
               </Text>
             </Pressable>
           )}
         </View>
       </ScrollView>
     </Screen>
+  );
+}
+
+/** Avance de lectura: página actual y total (cada edición tiene distinto
+ *  número de páginas, por eso el total es editable). */
+function BookProgress({
+  entry,
+  onSave,
+}: {
+  entry: UserContent;
+  onSave: (input: { currentPage?: number; totalPages?: number }) => void;
+}) {
+  const [page, setPage] = useState(entry.currentPage?.toString() ?? '');
+  const [total, setTotal] = useState(entry.totalPages?.toString() ?? '');
+  const percent = readingPercent(entry);
+
+  const parsedPage = page.trim() === '' ? undefined : Number(page);
+  const parsedTotal = total.trim() === '' ? undefined : Number(total);
+  const dirty =
+    (parsedPage ?? null) !== entry.currentPage || (parsedTotal ?? null) !== entry.totalPages;
+
+  const save = () => {
+    if (
+      (parsedPage !== undefined && !(Number.isInteger(parsedPage) && parsedPage >= 0)) ||
+      (parsedTotal !== undefined && !(Number.isInteger(parsedTotal) && parsedTotal >= 1))
+    ) {
+      Toast.show({ type: 'error', text1: 'Escribí números enteros' });
+      return;
+    }
+    if (parsedPage !== undefined && parsedTotal !== undefined && parsedPage > parsedTotal) {
+      Toast.show({ type: 'error', text1: `La página no puede pasar de ${parsedTotal}` });
+      return;
+    }
+    onSave({ currentPage: parsedPage, totalPages: parsedTotal });
+  };
+
+  return (
+    <>
+      <Text style={[typography.sectionTitle, styles.blockTitle]}>Progreso</Text>
+      {percent !== null ? (
+        <View style={styles.progressBarTrack}>
+          <View style={[styles.progressBarFill, { width: `${percent}%` }]} />
+        </View>
+      ) : null}
+      <View style={styles.pagesRow}>
+        <Text style={styles.pagesLabel}>Página</Text>
+        <TextInput
+          value={page}
+          onChangeText={setPage}
+          keyboardType="number-pad"
+          placeholder="0"
+          placeholderTextColor={colors.muted}
+          style={styles.pageInput}
+        />
+        <Text style={styles.pagesLabel}>de</Text>
+        <TextInput
+          value={total}
+          onChangeText={setTotal}
+          keyboardType="number-pad"
+          placeholder="?"
+          placeholderTextColor={colors.muted}
+          style={styles.pageInput}
+        />
+        {percent !== null ? <Text style={styles.percentLabel}>{percent}%</Text> : null}
+      </View>
+      {dirty ? (
+        <Pressable style={styles.saveProgressButton} onPress={save}>
+          <Text style={styles.saveProgressLabel}>Guardar progreso</Text>
+        </Pressable>
+      ) : null}
+    </>
   );
 }
 
@@ -288,6 +382,28 @@ const styles = StyleSheet.create({
   },
   stepperButtonLabel: { color: colors.text, fontSize: 18 },
   stepperValue: { color: colors.text, fontSize: 16, minWidth: 24, textAlign: 'center' },
+  progressBarTrack: {
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: colors.surface,
+    overflow: 'hidden',
+    marginBottom: spacing.sm,
+  },
+  progressBarFill: { height: '100%', backgroundColor: colors.accent },
+  pagesRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  pagesLabel: { ...typography.caption },
+  pageInput: {
+    minWidth: 64,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radius.sm,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 6,
+    color: colors.text,
+    fontSize: 16,
+    textAlign: 'center',
+  },
+  percentLabel: { ...typography.caption, color: colors.accent, fontWeight: '700' },
   saveProgressButton: {
     marginTop: spacing.md,
     alignSelf: 'flex-start',

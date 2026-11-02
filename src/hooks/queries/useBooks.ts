@@ -17,10 +17,11 @@ export function useBookSearch(query: string) {
   });
 }
 
-/** Libros marcados como leídos (separados de "Mi lista" audiovisual). */
-export function useReadBooks() {
+/** Libros del usuario en todos sus estados de lectura (separados de "Mi
+ *  lista" audiovisual). */
+export function useMyBooks() {
   return useQuery({
-    queryKey: queryKeys.readBooks(),
+    queryKey: queryKeys.books(),
     queryFn: () => trackingService.list({ type: 'book' }),
   });
 }
@@ -35,14 +36,6 @@ export function useBookRecommendations() {
     // El backend ya cachea 24 h; refetchear al volver a la pantalla solo
     // gastaría requests.
     staleTime: 30 * 60 * 1000,
-  });
-}
-
-/** Lista "para leer después". */
-export function useSavedBooks() {
-  return useQuery({
-    queryKey: queryKeys.savedBooks(),
-    queryFn: () => catalogService.savedBooks(),
   });
 }
 
@@ -65,8 +58,9 @@ export function useBookSuggestionMutations() {
     mutationFn: (id: string) => catalogService.updateBookSuggestion(id, 'saved'),
     onSuccess: (_, id) => {
       removeFromCurrent(id);
-      queryClient.invalidateQueries({ queryKey: queryKeys.savedBooks() });
-      Toast.show({ type: 'success', text1: 'Guardado para leer después' });
+      // El backend lo agrega a la lista como "quiero leer".
+      queryClient.invalidateQueries({ queryKey: queryKeys.books() });
+      Toast.show({ type: 'success', text1: 'Agregado a Quiero leer' });
     },
     onError: () => Toast.show({ type: 'error', text1: 'No se pudo guardar' }),
   });
