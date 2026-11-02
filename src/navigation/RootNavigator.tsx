@@ -74,7 +74,8 @@ export function RootNavigator() {
             <Stack.Screen
               name="Buscar"
               component={SearchScreen}
-              options={{ title: 'Buscar' }}
+              // La pantalla trae su propia fila con flecha y buscador.
+              options={{ headerShown: false }}
             />
           </>
         )}

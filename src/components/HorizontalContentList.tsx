@@ -1,5 +1,12 @@
 import React from 'react';
-import { ActivityIndicator, FlatList, StyleSheet, Text, View } from 'react-native';
+import {
+  ActivityIndicator,
+  FlatList,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 import { colors, spacing, typography } from '../theme';
 import type { Content } from '../types/content';
 import { ContentCard } from './ContentCard';
@@ -19,6 +26,14 @@ interface HorizontalContentListProps {
    * "de verdad no hay nada" — ver openspec/changes/persist-cached-content-on-launch).
    */
   isLoading?: boolean;
+  /** Línea bajo el título de cada tarjeta (p. ej. "T2 · E5"). */
+  getSubtitle?: (content: Content) => string | null | undefined;
+  /** Avance 0–100 de cada tarjeta, para la barra al pie del póster. */
+  getProgress?: (content: Content) => number | null | undefined;
+  /** Esquina del póster (p. ej. "★ 4"). */
+  getBadge?: (content: Content) => string | undefined;
+  /** Enlace a la derecha del título, p. ej. "Ver todo". */
+  action?: { label: string; onPress: () => void };
 }
 
 /** Sección horizontal de posters, como en el "Home ideal" del doc. */
@@ -30,6 +45,10 @@ export function HorizontalContentList({
   isFavorite,
   onToggleFavorite,
   isLoading,
+  getSubtitle,
+  getProgress,
+  getBadge,
+  action,
 }: HorizontalContentListProps) {
   if (items.length === 0 && !emptyLabel && !isLoading) return null;
 
@@ -38,6 +57,11 @@ export function HorizontalContentList({
       <View style={styles.titleRow}>
         <View style={styles.titleMark} />
         <Text style={[typography.sectionTitle, styles.title]}>{title}</Text>
+        {action ? (
+          <Pressable onPress={action.onPress} hitSlop={8}>
+            <Text style={styles.action}>{action.label}</Text>
+          </Pressable>
+        ) : null}
       </View>
       {isLoading && items.length === 0 ? (
         <ActivityIndicator color={colors.primary} style={styles.loading} />
@@ -47,13 +71,16 @@ export function HorizontalContentList({
         <FlatList
           horizontal
           data={items}
-          keyExtractor={(item) => item.id}
+          keyExtractor={item => item.id}
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.list}
           renderItem={({ item }) => (
             <ContentCard
               content={item}
               onPress={() => onPressItem(item)}
+              subtitle={getSubtitle?.(item)}
+              progress={getProgress?.(item)}
+              badge={getBadge?.(item)}
               isFavorite={isFavorite?.(item)}
               onToggleFavorite={
                 onToggleFavorite ? () => onToggleFavorite(item) : undefined
@@ -83,7 +110,8 @@ const styles = StyleSheet.create({
     borderRadius: 2,
     backgroundColor: colors.accent,
   },
-  title: {},
+  title: { flex: 1 },
+  action: { color: colors.primary, fontWeight: '600', fontSize: 13 },
   list: {
     paddingHorizontal: spacing.md,
   },

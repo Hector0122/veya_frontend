@@ -1,6 +1,10 @@
 import React from 'react';
 import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
-import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
+} from 'react-native-reanimated';
 import { colors, radius, spacing, typography } from '../theme';
 import { motion } from '../theme/tokens';
 import type { Content } from '../types/content';
@@ -23,6 +27,8 @@ interface ContentCardProps {
    * Sin él es la tarjeta de 120 px con margen derecho de las filas horizontales.
    */
   width?: number;
+  /** Avance de 0 a 100: dibuja una barra al pie del póster. */
+  progress?: number | null;
 }
 
 export function ContentCard({
@@ -33,9 +39,12 @@ export function ContentCard({
   isFavorite,
   onToggleFavorite,
   width,
+  progress,
 }: ContentCardProps) {
   const sizeStyle = width ? { width, marginRight: 0 } : null;
-  const posterSizeStyle = width ? { width, height: Math.round(width * 1.5) } : null;
+  const posterSizeStyle = width
+    ? { width, height: Math.round(width * 1.5) }
+    : null;
 
   const scale = useSharedValue(1);
   const animatedStyle = useAnimatedStyle(() => ({
@@ -63,6 +72,11 @@ export function ContentCard({
             </Text>
           </View>
         )}
+        {progress !== undefined && progress !== null ? (
+          <View style={styles.progressTrack}>
+            <View style={[styles.progressFill, { width: `${progress}%` }]} />
+          </View>
+        ) : null}
         {badge ? (
           <View style={styles.badge}>
             <Text style={styles.badgeText}>{badge}</Text>
@@ -71,7 +85,7 @@ export function ContentCard({
         {onToggleFavorite ? (
           <Pressable
             hitSlop={8}
-            onPress={(e) => {
+            onPress={e => {
               e.stopPropagation();
               onToggleFavorite();
             }}
@@ -124,6 +138,18 @@ const styles = StyleSheet.create({
     color: colors.muted,
     fontSize: 12,
     textAlign: 'center',
+  },
+  progressTrack: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    height: 4,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+  },
+  progressFill: {
+    height: '100%',
+    backgroundColor: colors.accent,
   },
   badge: {
     position: 'absolute',

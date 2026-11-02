@@ -1,6 +1,6 @@
 import { RouteProp, useNavigation, useRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
@@ -10,27 +10,52 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { ContentCard } from '../components/ContentCard';
-import { useGridCardWidth } from '../hooks/useGridCardWidth';
 import { Screen } from '../components/Screen';
-import { useFavorite } from '../hooks/useFavorite';
-import { useDebouncedValue } from '../hooks/useDebouncedValue';
+import { useMyBooks } from '../hooks/queries/useBooks';
+import { useMyList } from '../hooks/queries/useMyList';
 import { useSearch } from '../hooks/queries/useSearch';
 import { useBookSearch } from '../hooks/queries/useBooks';
+import { useDebouncedValue } from '../hooks/useDebouncedValue';
+import { useGridCardWidth } from '../hooks/useGridCardWidth';
 import type { RootStackParamList } from '../navigation/types';
 import { colors, radius, spacing } from '../theme';
-import { formatAuthors, formatContentType } from '../utils/format';
+import { iconSize } from '../theme/tokens';
+import type { Content } from '../types/content';
+import {
+  BOOK_STATUS_LABELS,
+  CONTENT_STATUS_LABELS,
+  ContentStatus,
+} from '../types/tracking';
+import { formatAuthors, formatContentType, formatYear } from '../utils/format';
 
 type SearchMode = 'all' | 'books';
 
-const MODES: { mode: SearchMode; label: string; placeholder: string }[] = [
-  { mode: 'all', label: 'Películas y series', placeholder: 'Película, serie o anime…' },
-  { mode: 'books', label: 'Libros', placeholder: 'Título o autor…' },
+const MODES: {
+  mode: SearchMode;
+  label: string;
+  placeholder: string;
+  hint: string;
+}[] = [
+  {
+    mode: 'all',
+    label: 'Películas y series',
+    placeholder: 'Película, serie o anime…',
+    hint: 'Buscá por título para agregarlo a tu lista.',
+  },
+  {
+    mode: 'books',
+    label: 'Libros',
+    placeholder: 'Título o autor…',
+    hint: 'Buscá libros por título o autor. Marcar los que leíste mejora tus recomendaciones.',
+  },
 ];
 
 export function SearchScreen() {
   const cardWidth = useGridCardWidth();
-  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const navigation =
+    useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { params } = useRoute<RouteProp<RootStackParamList, 'Buscar'>>();
   const [mode, setMode] = useState<SearchMode>(params?.mode ?? 'all');
   const [query, setQuery] = useState('');
@@ -39,109 +64,210 @@ export function SearchScreen() {
   const audiovisual = useSearch(mode === 'all' ? debouncedQuery : '');
   const books = useBookSearch(mode === 'books' ? debouncedQuery : '');
   const { data, isFetching } = mode === 'books' ? books : audiovisual;
-  const { isFavorite, toggleFavorite } = useFavorite();
+  const current = MODES.find(m => m.mode === mode)!;
+
+  // Qué de los resultados ya está en la lista, para marcarlo.
+  const myList = useMyList();
+  const myBooks = useMyBooks();
+  const statusById = useMemo(
+    () =>
+      new Map<string, ContentStatus>(
+        [...(myList.data ?? []), ...(myBooks.data ?? [])].map(row => [
+          row.contentId,
+          row.status,
+        ]),
+      ),
+    [myList.data, myBooks.data],
+  );
+
+  const badgeFor = (item: Content) => {
+    const status = statusById.get(item.id);
+    if (status) {
+      const labels =
+        item.type === 'book' ? BOOK_STATUS_LABELS : CONTENT_STATUS_LABELS;
+      return `✓ ${labels[status]}`;
+    }
+    // En libros el badge diría siempre "Libro"; el autor ya va debajo.
+    return item.type === 'book' ? undefined : formatContentType(item.type);
+  };
+
+  const hasQuery = debouncedQuery.trim().length > 0;
+  const results = data ?? [];
 
   return (
     <Screen>
-      <View style={styles.header}>
-        <View style={styles.modes}>
-          {MODES.map((m) => (
+      <View style={styles.searchRow}>
+        <Pressable
+          onPress={() => navigation.goBack()}
+          hitSlop={8}
+          style={styles.back}
+        >
+          <Icon name="arrow-left" size={iconSize.md} color={colors.text} />
+        </Pressable>
+        <View style={styles.inputWrapper}>
+          <Icon name="magnify" size={iconSize.sm} color={colors.muted} />
+          <TextInput
+            style={styles.input}
+            placeholder={current.placeholder}
+            placeholderTextColor={colors.muted}
+            value={query}
+            onChangeText={setQuery}
+            autoCapitalize="none"
+            autoFocus
+            returnKeyType="search"
+          />
+          {query.length > 0 ? (
             <Pressable
-              key={m.mode}
-              onPress={() => setMode(m.mode)}
-              style={[styles.modeChip, mode === m.mode && styles.modeChipActive]}
+              onPress={() => setQuery('')}
+              hitSlop={8}
+              accessibilityLabel="Borrar"
             >
-              <Text style={[styles.modeLabel, mode === m.mode && styles.modeLabelActive]}>
-                {m.label}
-              </Text>
+              <Icon
+                name="close-circle"
+                size={iconSize.sm}
+                color={colors.muted}
+              />
             </Pressable>
-          ))}
+          ) : null}
         </View>
-        <TextInput
-          style={styles.input}
-          placeholder={MODES.find((m) => m.mode === mode)?.placeholder}
-          placeholderTextColor={colors.muted}
-          value={query}
-          onChangeText={setQuery}
-          autoCapitalize="none"
-          autoFocus
-          returnKeyType="search"
-        />
       </View>
 
-      {isFetching && <ActivityIndicator color={colors.primary} style={styles.spinner} />}
+      <View style={styles.segmented}>
+        {MODES.map(m => (
+          <Pressable
+            key={m.mode}
+            onPress={() => setMode(m.mode)}
+            style={[styles.segment, mode === m.mode && styles.segmentActive]}
+          >
+            <Text
+              style={[
+                styles.segmentLabel,
+                mode === m.mode && styles.segmentLabelActive,
+              ]}
+            >
+              {m.label}
+            </Text>
+          </Pressable>
+        ))}
+      </View>
 
-      {!isFetching && debouncedQuery.length > 0 && (data ?? []).length === 0 && (
-        <Text style={styles.emptyText}>Sin resultados para "{debouncedQuery}"</Text>
-      )}
-
-      <FlatList
-        data={data ?? []}
-        keyExtractor={(item) => item.id}
-        numColumns={3}
-        contentContainerStyle={styles.list}
-        columnWrapperStyle={styles.row}
-        renderItem={({ item }) => (
-          <ContentCard
-            width={cardWidth}
-            content={item}
-            // En libros el badge diría siempre "Libro"; el autor dice más.
-            badge={item.type === 'book' ? undefined : formatContentType(item.type)}
-            subtitle={item.type === 'book' ? formatAuthors(item.metadata) : undefined}
-            // El favorito de un libro solo tiene sentido si ya está en la
-            // lista: se maneja en su detalle.
-            isFavorite={item.type === 'book' ? undefined : isFavorite(item.id)}
-            onToggleFavorite={item.type === 'book' ? undefined : () => toggleFavorite(item)}
-            onPress={() =>
-              navigation.navigate('Detalle', { contentId: item.id, title: item.title })
+      {isFetching && results.length === 0 ? (
+        <ActivityIndicator color={colors.primary} style={styles.spinner} />
+      ) : !hasQuery ? (
+        <View style={styles.empty}>
+          <Icon
+            name={
+              mode === 'books' ? 'book-search-outline' : 'movie-search-outline'
             }
+            size={iconSize.xl}
+            color={colors.muted}
           />
-        )}
-      />
+          <Text style={styles.emptyText}>{current.hint}</Text>
+        </View>
+      ) : results.length === 0 ? (
+        <View style={styles.empty}>
+          <Icon name="magnify-close" size={iconSize.xl} color={colors.muted} />
+          <Text style={styles.emptyText}>
+            Sin resultados para “{debouncedQuery}”.
+          </Text>
+        </View>
+      ) : (
+        <FlatList
+          data={results}
+          keyExtractor={item => item.id}
+          numColumns={3}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
+          contentContainerStyle={styles.list}
+          columnWrapperStyle={styles.row}
+          renderItem={({ item }) => (
+            <ContentCard
+              width={cardWidth}
+              content={item}
+              badge={badgeFor(item)}
+              subtitle={
+                item.type === 'book'
+                  ? formatAuthors(item.metadata)
+                  : item.releaseDate
+                  ? formatYear(item.releaseDate)
+                  : undefined
+              }
+              onPress={() =>
+                navigation.navigate('Detalle', {
+                  contentId: item.id,
+                  title: item.title,
+                })
+              }
+            />
+          )}
+        />
+      )}
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  header: {
+  searchRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
     paddingHorizontal: spacing.md,
-    paddingTop: spacing.md,
+    paddingTop: spacing.sm,
     marginBottom: spacing.md,
   },
-  modes: {
-    flexDirection: 'row',
-    gap: spacing.sm,
-    marginBottom: spacing.sm,
+  back: {
+    width: 36,
+    height: 44,
+    justifyContent: 'center',
   },
-  modeChip: {
+  inputWrapper: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    backgroundColor: colors.surface,
     borderRadius: radius.pill,
     borderWidth: 1,
     borderColor: colors.border,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 6,
-  },
-  modeChipActive: {
-    backgroundColor: colors.primary,
-    borderColor: colors.primary,
-  },
-  modeLabel: { color: colors.muted, fontSize: 12, fontWeight: '600' },
-  modeLabelActive: { color: colors.text },
-  input: {
-    backgroundColor: colors.surface,
-    borderRadius: radius.md,
-    borderWidth: 1,
-    borderColor: colors.border,
     paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm + 4,
-    color: colors.text,
+    height: 44,
   },
+  input: {
+    flex: 1,
+    color: colors.text,
+    fontSize: 15,
+    paddingVertical: 0,
+  },
+  segmented: {
+    flexDirection: 'row',
+    marginHorizontal: spacing.md,
+    marginBottom: spacing.md,
+    padding: 4,
+    borderRadius: radius.md,
+    backgroundColor: colors.surface,
+  },
+  segment: {
+    flex: 1,
+    alignItems: 'center',
+    paddingVertical: spacing.sm,
+    borderRadius: radius.sm,
+  },
+  segmentActive: { backgroundColor: colors.background },
+  segmentLabel: { color: colors.muted, fontSize: 14, fontWeight: '600' },
+  segmentLabelActive: { color: colors.text },
   spinner: {
-    marginTop: spacing.lg,
+    marginTop: spacing.xl,
+  },
+  empty: {
+    alignItems: 'center',
+    gap: spacing.md,
+    marginTop: spacing.xxl,
+    paddingHorizontal: spacing.xl,
   },
   emptyText: {
     color: colors.muted,
     textAlign: 'center',
-    marginTop: spacing.xl,
+    lineHeight: 20,
   },
   list: {
     paddingHorizontal: spacing.md,

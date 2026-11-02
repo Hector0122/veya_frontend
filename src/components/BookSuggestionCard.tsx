@@ -1,6 +1,10 @@
 import React from 'react';
 import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
-import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
+} from 'react-native-reanimated';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { colors, radius, spacing, typography } from '../theme';
 import { iconSize, motion } from '../theme/tokens';
@@ -9,9 +13,10 @@ import { formatAuthors, formatGenres } from '../utils/format';
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
-const CARD_WIDTH = 300;
-const COVER_WIDTH = 84;
-const COVER_HEIGHT = 126;
+// Mismo ancho que ContentCard en las filas de Inicio, para que todo se lea
+// como una sola familia de tarjetas.
+const CARD_WIDTH = 120;
+const COVER_HEIGHT = 180;
 
 interface BookSuggestionCardProps {
   suggestion: BookSuggestion;
@@ -48,125 +53,135 @@ export function BookSuggestionCard({
     <AnimatedPressable
       onPress={onPress}
       onPressIn={() => {
-        scale.value = withSpring(0.97, motion.spring.press);
+        scale.value = withSpring(0.96, motion.spring.press);
       }}
       onPressOut={() => {
         scale.value = withSpring(1, motion.spring.press);
       }}
       style={[styles.card, animatedStyle]}
     >
-      {content.posterUrl ? (
-        <Image source={{ uri: content.posterUrl }} style={styles.cover} />
-      ) : (
-        <View style={[styles.cover, styles.coverPlaceholder]}>
-          <Icon name="book-open-variant" size={iconSize.lg} color={colors.muted} />
+      <View style={styles.cover}>
+        {content.posterUrl ? (
+          <Image
+            source={{ uri: content.posterUrl }}
+            style={styles.coverImage}
+          />
+        ) : (
+          <View style={styles.coverPlaceholder}>
+            <Icon
+              name="book-open-variant"
+              size={iconSize.lg}
+              color={colors.muted}
+            />
+          </View>
+        )}
+        <View style={styles.actions}>
+          <IconAction
+            icon="close"
+            label="No me interesa"
+            color={colors.text}
+            onPress={onDismiss}
+          />
+          <IconAction
+            icon="bookmark-plus-outline"
+            label="Agregar a Quiero leer"
+            color={colors.accent}
+            onPress={onSave}
+          />
         </View>
-      )}
+      </View>
 
-      <View style={styles.body}>
-        <Text style={typography.cardTitle} numberOfLines={2}>
-          {content.title}
+      <Text style={typography.cardTitle} numberOfLines={2}>
+        {content.title}
+      </Text>
+      {authors ? (
+        <Text style={styles.author} numberOfLines={1}>
+          {authors}
         </Text>
-        {authors ? (
-          <Text style={styles.author} numberOfLines={1}>
-            {authors}
-          </Text>
-        ) : null}
+      ) : null}
+      {why ? (
         <Text style={styles.why} numberOfLines={3}>
           {why}
         </Text>
-
-        <View style={styles.actions}>
-          <Pressable
-            hitSlop={6}
-            onPress={(e) => {
-              e.stopPropagation();
-              onSave();
-            }}
-            style={[styles.action, styles.actionPrimary]}
-          >
-            <Icon name="bookmark-plus-outline" size={iconSize.sm} color={colors.accent} />
-            <Text style={[styles.actionLabel, styles.actionLabelPrimary]}>Guardar</Text>
-          </Pressable>
-          <Pressable
-            hitSlop={6}
-            onPress={(e) => {
-              e.stopPropagation();
-              onDismiss();
-            }}
-            style={styles.action}
-            accessibilityLabel="Descartar sugerencia"
-          >
-            <Icon name="close" size={iconSize.sm} color={colors.muted} />
-            <Text style={styles.actionLabel}>No me interesa</Text>
-          </Pressable>
-        </View>
-      </View>
+      ) : null}
     </AnimatedPressable>
+  );
+}
+
+function IconAction({
+  icon,
+  label,
+  color,
+  onPress,
+}: {
+  icon: string;
+  label: string;
+  color: string;
+  onPress: () => void;
+}) {
+  return (
+    <Pressable
+      hitSlop={6}
+      onPress={e => {
+        e.stopPropagation();
+        onPress();
+      }}
+      style={styles.action}
+      accessibilityLabel={label}
+    >
+      <Icon name={icon} size={iconSize.sm} color={color} />
+    </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
   card: {
     width: CARD_WIDTH,
-    flexDirection: 'row',
-    gap: spacing.sm,
     marginRight: spacing.md,
-    padding: spacing.sm,
-    backgroundColor: colors.surface,
-    borderRadius: radius.md,
-    borderWidth: 1,
-    borderColor: colors.border,
   },
   cover: {
-    width: COVER_WIDTH,
+    width: CARD_WIDTH,
     height: COVER_HEIGHT,
-    borderRadius: radius.sm,
-    backgroundColor: colors.surfaceAlt,
+    borderRadius: radius.md,
+    overflow: 'hidden',
+    backgroundColor: colors.surface,
+    marginBottom: spacing.xs,
+  },
+  coverImage: {
+    width: '100%',
+    height: '100%',
   },
   coverPlaceholder: {
+    flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  body: {
-    flex: 1,
+  actions: {
+    position: 'absolute',
+    right: spacing.xs,
+    bottom: spacing.xs,
+    flexDirection: 'row',
+    gap: spacing.xs,
+  },
+  action: {
+    width: 34,
+    height: 34,
+    borderRadius: radius.pill,
+    backgroundColor: 'rgba(10,11,13,0.8)',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   author: {
     ...typography.caption,
+    fontSize: 12,
     marginTop: 2,
   },
   why: {
     ...typography.caption,
-    color: colors.text,
-    marginTop: spacing.sm,
-    lineHeight: 18,
-  },
-  actions: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.sm,
-    marginTop: 'auto',
-    paddingTop: spacing.sm,
-  },
-  action: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    borderRadius: radius.pill,
-    borderWidth: 1,
-    borderColor: colors.border,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 4,
-  },
-  actionPrimary: {
-    borderColor: colors.accent,
-  },
-  actionLabel: {
-    color: colors.muted,
     fontSize: 12,
-    fontWeight: '600',
-  },
-  actionLabelPrimary: {
-    color: colors.accent,
+    lineHeight: 16,
+    color: colors.text,
+    opacity: 0.8,
+    marginTop: spacing.xs,
   },
 });
