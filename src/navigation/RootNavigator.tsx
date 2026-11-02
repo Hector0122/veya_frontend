@@ -26,8 +26,8 @@ const navigationTheme = {
 };
 
 export function RootNavigator() {
-  const hasHydrated = useAuthStore((s) => s.hasHydrated);
-  const isAuthenticated = Boolean(useAuthStore((s) => s.accessToken));
+  const hasHydrated = useAuthStore(s => s.hasHydrated);
+  const isAuthenticated = Boolean(useAuthStore(s => s.accessToken));
 
   // Al entrar (igual que Vaulta): avisa si hay un APK más nuevo en GitHub.
   useEffect(() => {
@@ -47,7 +47,11 @@ export function RootNavigator() {
         }}
       >
         {!isAuthenticated ? (
-          <Stack.Screen name="Login" component={LoginScreen} options={{ headerShown: false }} />
+          <Stack.Screen
+            name="Login"
+            component={LoginScreen}
+            options={{ headerShown: false }}
+          />
         ) : (
           <>
             <Stack.Screen
@@ -58,7 +62,14 @@ export function RootNavigator() {
             <Stack.Screen
               name="Detalle"
               component={DetailScreen}
-              options={({ route }) => ({ title: route.params.title ?? 'Detalle' })}
+              // El encabezado de la pantalla ya muestra el título sobre el
+              // backdrop; la barra queda transparente solo con la flecha.
+              options={{
+                title: '',
+                headerTransparent: true,
+                headerTintColor: '#FFFFFF',
+                headerStyle: { backgroundColor: 'transparent' },
+              }}
             />
             <Stack.Screen
               name="Buscar"

@@ -11,9 +11,8 @@ import {
   View,
 } from 'react-native';
 import Toast from 'react-native-toast-message';
-import { Screen } from '../components/Screen';
+import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { StarRating } from '../components/StarRating';
-import { StatusBadge } from '../components/StatusBadge';
 import { useContentDetail } from '../hooks/queries/useContentDetail';
 import { useMyList } from '../hooks/queries/useMyList';
 import { useMyBooks } from '../hooks/queries/useBooks';
@@ -21,6 +20,7 @@ import { useTrackingMutations } from '../hooks/queries/useTrackingMutations';
 import { useFavorite } from '../hooks/useFavorite';
 import type { RootStackParamList } from '../navigation/types';
 import { colors, radius, spacing, typography } from '../theme';
+import { hexToRgba, iconSize } from '../theme/tokens';
 import {
   BOOK_STATUSES,
   BOOK_STATUS_LABELS,
@@ -37,6 +37,13 @@ import {
   readingPercent,
 } from '../utils/format';
 
+const BACKDROP_HEIGHT = 260;
+const POSTER_WIDTH = 116;
+const POSTER_HEIGHT = POSTER_WIDTH * 1.5;
+/** Cuánto se monta el póster sobre el backdrop. */
+const POSTER_OVERLAP = 96;
+const OVERVIEW_LINES = 5;
+
 export function DetailScreen() {
   const { params } = useRoute<RouteProp<RootStackParamList, 'Detalle'>>();
   const { data: content, isLoading } = useContentDetail(params.contentId);
@@ -45,14 +52,14 @@ export function DetailScreen() {
   const myBooks = useMyBooks();
   const { addToList, updateTracking, removeFromList } = useTrackingMutations();
   const { isFavorite, toggleFavorite } = useFavorite();
-  const [pendingSeason, setPendingSeason] = useState<string | null>(null);
-  const [pendingEpisode, setPendingEpisode] = useState<string | null>(null);
 
   const isBook = content?.type === 'book';
 
   const trackingEntry = useMemo(
     () =>
-      (isBook ? myBooks.data : myList.data)?.find((row) => row.contentId === params.contentId),
+      (isBook ? myBooks.data : myList.data)?.find(
+        row => row.contentId === params.contentId,
+      ),
     [isBook, myBooks.data, myList.data, params.contentId],
   );
 
@@ -60,15 +67,17 @@ export function DetailScreen() {
 
   if (isLoading || !content) {
     return (
-      <Screen>
+      <View style={styles.screen}>
         <ActivityIndicator color={colors.primary} style={styles.spinner} />
-      </Screen>
+      </View>
     );
   }
 
   const changeStatus = (status: ContentStatus) => {
     if (trackingEntry) {
-      updateTracking.mutate({ id: trackingEntry.id, input: { status } });
+      if (trackingEntry.status !== status) {
+        updateTracking.mutate({ id: trackingEntry.id, input: { status } });
+      }
     } else {
       addToList.mutate({ contentId: content.id, status });
     }
@@ -84,7 +93,8 @@ export function DetailScreen() {
       addToList.mutate(
         { contentId: content.id },
         {
-          onSuccess: (created) => updateTracking.mutate({ id: created.id, input: { rating } }),
+          onSuccess: created =>
+            updateTracking.mutate({ id: created.id, input: { rating } }),
         },
       );
     }
@@ -102,129 +112,306 @@ export function DetailScreen() {
       toggleFavorite(content);
     }
   };
-  const favorite = isBook ? Boolean(trackingEntry?.isFavorite) : isFavorite(content.id);
+  const favorite = isBook
+    ? Boolean(trackingEntry?.isFavorite)
+    : isFavorite(content.id);
   const authors = isBook ? formatAuthors(content.metadata, 3) : null;
-
-  const saveProgress = () => {
-    if (!trackingEntry) return;
-    const currentSeason = pendingSeason !== null ? Number(pendingSeason) : undefined;
-    const currentEpisode = pendingEpisode !== null ? Number(pendingEpisode) : undefined;
-    updateTracking.mutate({
-      id: trackingEntry.id,
-      input: { currentSeason, currentEpisode },
-    });
-    setPendingSeason(null);
-    setPendingEpisode(null);
-  };
+  const genres = formatGenres(content.genres, 4);
+  const statuses = isBook ? BOOK_STATUSES : CONTENT_STATUSES;
+  const labels = isBook ? BOOK_STATUS_LABELS : CONTENT_STATUS_LABELS;
+  // Sin backdrop (libros, algunos animes) se usa el póster difuminado.
+  const backdrop = content.backdropUrl ?? content.posterUrl;
 
   return (
-    <Screen>
+    <View style={styles.screen}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
-        <View style={styles.posterWrapper}>
-          {content.posterUrl ? (
-            <Image source={{ uri: content.posterUrl }} style={styles.poster} />
+        <View style={styles.backdrop}>
+          {backdrop ? (
+            <Image
+              source={{ uri: backdrop }}
+              style={StyleSheet.absoluteFill}
+              blurRadius={content.backdropUrl ? 0 : 12}
+              resizeMode="cover"
+            />
           ) : null}
+          {/* Oscurece arriba para que se lea la flecha de volver. */}
+          <Fade edge="top" height={110} from={0.55} to={0} />
+          <Fade edge="bottom" height={150} from={0} to={1} />
         </View>
 
-        <View style={styles.body}>
-          <Text style={typography.title}>{content.title}</Text>
-          <Text style={styles.metaLine}>
-            {formatContentType(content.type)} · {formatYear(content.releaseDate)}
-            {authors ? ` · ${authors}` : ''}
-          </Text>
-          <Text style={styles.genres}>{formatGenres(content.genres, 5)}</Text>
-
-          <View style={styles.actionsRow}>
-            {showFavorite ? (
-              <Pressable onPress={onToggleFavorite} style={styles.favoriteButton}>
-                <Text style={styles.favoriteIcon}>{favorite ? '♥' : '♡'}</Text>
-              </Pressable>
-            ) : null}
-            <StarRating value={trackingEntry?.rating ?? null} onChange={setRating} />
+        <View style={styles.header}>
+          <View style={styles.posterFrame}>
+            {content.posterUrl ? (
+              <Image
+                source={{ uri: content.posterUrl }}
+                style={styles.poster}
+              />
+            ) : (
+              <Icon
+                name="image-off-outline"
+                size={iconSize.lg}
+                color={colors.muted}
+              />
+            )}
           </View>
+          <View style={styles.headerText}>
+            <Text style={styles.title} numberOfLines={3}>
+              {content.title}
+            </Text>
+            <Text style={styles.meta} numberOfLines={2}>
+              {formatContentType(content.type)} ·{' '}
+              {formatYear(content.releaseDate)}
+              {authors ? ` · ${authors}` : ''}
+            </Text>
+            {genres ? (
+              <Text style={styles.genres} numberOfLines={2}>
+                {genres}
+              </Text>
+            ) : null}
+          </View>
+        </View>
 
-          {content.overview ? (
-            <Text style={styles.overview}>{content.overview}</Text>
+        <View style={styles.card}>
+          <Text style={styles.cardLabel}>
+            {isBook ? 'Tu lectura' : 'Tu lista'}
+          </Text>
+          <View style={styles.segmented}>
+            {statuses.map(status => {
+              const selected = trackingEntry?.status === status;
+              const tint = colors.status[status];
+              return (
+                <Pressable
+                  key={status}
+                  onPress={() => changeStatus(status)}
+                  style={[
+                    styles.segment,
+                    selected && {
+                      backgroundColor: hexToRgba(tint, 0.16),
+                      borderColor: tint,
+                    },
+                  ]}
+                >
+                  <Text
+                    style={[styles.segmentLabel, selected && { color: tint }]}
+                    numberOfLines={1}
+                    adjustsFontSizeToFit
+                  >
+                    {labels[status]}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+          {!trackingEntry ? (
+            <Text style={styles.hint}>
+              Elegí un estado para agregarlo a tu lista.
+            </Text>
           ) : null}
 
-          <Text style={[typography.sectionTitle, styles.blockTitle]}>Estado</Text>
-          <View style={styles.statusRow}>
-            {(isBook ? BOOK_STATUSES : CONTENT_STATUSES).map((status) => (
+          <View style={styles.divider} />
+
+          <View style={styles.ratingRow}>
+            <View>
+              <Text style={styles.cardLabel}>Tu calificación</Text>
+              <StarRating
+                value={trackingEntry?.rating ?? null}
+                onChange={setRating}
+                size={26}
+              />
+            </View>
+            {showFavorite ? (
               <Pressable
-                key={status}
-                onPress={() => changeStatus(status)}
-                style={styles.statusChipWrapper}
+                onPress={onToggleFavorite}
+                style={[
+                  styles.favoriteButton,
+                  favorite && styles.favoriteButtonActive,
+                ]}
+                hitSlop={8}
               >
-                {trackingEntry?.status === status ? (
-                  <StatusBadge status={status} isBook={isBook} />
-                ) : (
-                  <View style={styles.statusChip}>
-                    <Text style={styles.statusChipLabel}>
-                      {(isBook ? BOOK_STATUS_LABELS : CONTENT_STATUS_LABELS)[status]}
-                    </Text>
-                  </View>
-                )}
+                <Icon
+                  name={favorite ? 'heart' : 'heart-outline'}
+                  size={iconSize.md}
+                  color={favorite ? colors.danger : colors.muted}
+                />
               </Pressable>
-            ))}
+            ) : null}
           </View>
 
-          {trackingEntry && isBook && trackingEntry.status !== 'pendiente' ? (
-            // La key reinicia los campos cuando el servidor devuelve otro avance.
-            <BookProgress
-              key={`${trackingEntry.currentPage}/${trackingEntry.totalPages}`}
-              entry={trackingEntry}
-              onSave={(input) => updateTracking.mutate({ id: trackingEntry.id, input })}
-            />
+          {trackingEntry &&
+          isBook &&
+          (trackingEntry.status === 'viendo' ||
+            trackingEntry.status === 'abandonado') ? (
+            <>
+              <View style={styles.divider} />
+              {/* La key reinicia los campos cuando el servidor devuelve otro avance. */}
+              <BookProgress
+                key={`${trackingEntry.currentPage}/${trackingEntry.totalPages}`}
+                entry={trackingEntry}
+                onSave={input =>
+                  updateTracking.mutate({ id: trackingEntry.id, input })
+                }
+              />
+            </>
           ) : null}
 
           {trackingEntry && isSeries ? (
             <>
-              <Text style={[typography.sectionTitle, styles.blockTitle]}>Progreso</Text>
-              <View style={styles.progressRow}>
-                <ProgressField
-                  label="Temporada"
-                  value={pendingSeason ?? String(trackingEntry.currentSeason ?? 0)}
-                  onChange={setPendingSeason}
-                />
-                <ProgressField
-                  label="Episodio"
-                  value={pendingEpisode ?? String(trackingEntry.currentEpisode ?? 0)}
-                  onChange={setPendingEpisode}
-                />
-              </View>
-              {(pendingSeason !== null || pendingEpisode !== null) && (
-                <Pressable style={styles.saveProgressButton} onPress={saveProgress}>
-                  <Text style={styles.saveProgressLabel}>Guardar progreso</Text>
-                </Pressable>
-              )}
+              <View style={styles.divider} />
+              <SeriesProgress
+                key={`${trackingEntry.currentSeason}/${trackingEntry.currentEpisode}`}
+                entry={trackingEntry}
+                onSave={input =>
+                  updateTracking.mutate({ id: trackingEntry.id, input })
+                }
+              />
             </>
           ) : null}
-
-          {trackingEntry ? (
-            <Pressable
-              style={styles.removeButton}
-              onPress={() => removeFromList.mutate(trackingEntry.id)}
-            >
-              <Text style={styles.removeLabel}>Quitar de mi lista</Text>
-            </Pressable>
-          ) : (
-            <Pressable
-              style={styles.addButton}
-              onPress={() =>
-                addToList.mutate({
-                  contentId: content.id,
-                  ...(isBook ? { status: 'pendiente' as const } : {}),
-                })
-              }
-            >
-              <Text style={styles.addLabel}>
-                {isBook ? 'Agregar a Quiero leer' : 'Agregar a mi lista'}
-              </Text>
-            </Pressable>
-          )}
         </View>
+
+        {content.overview ? <Overview text={content.overview} /> : null}
+
+        {trackingEntry ? (
+          <Pressable
+            style={styles.removeButton}
+            onPress={() => removeFromList.mutate(trackingEntry.id)}
+            hitSlop={8}
+          >
+            <Icon
+              name="trash-can-outline"
+              size={iconSize.sm}
+              color={colors.muted}
+            />
+            <Text style={styles.removeLabel}>Quitar de mi lista</Text>
+          </Pressable>
+        ) : null}
       </ScrollView>
-    </Screen>
+    </View>
+  );
+}
+
+/** Degradado vertical hacia el color de fondo (degradado nativo de Fabric,
+ *  sin librerías extra). `from`/`to` son la opacidad arriba y abajo. */
+function Fade({
+  edge,
+  height,
+  from,
+  to,
+}: {
+  edge: 'top' | 'bottom';
+  height: number;
+  from: number;
+  to: number;
+}) {
+  const gradient = `linear-gradient(to bottom, ${hexToRgba(
+    colors.background,
+    from,
+  )}, ${hexToRgba(colors.background, to)})`;
+  return (
+    <View
+      style={[
+        styles.fade,
+        { height, experimental_backgroundImage: gradient },
+        edge === 'top' ? styles.top : styles.bottom,
+      ]}
+      pointerEvents="none"
+    />
+  );
+}
+
+function Overview({ text }: { text: string }) {
+  const [expanded, setExpanded] = useState(false);
+  const [truncated, setTruncated] = useState(false);
+
+  return (
+    <View style={styles.section}>
+      <Text style={styles.sectionTitle}>Sinopsis</Text>
+      <Text
+        style={styles.overview}
+        numberOfLines={expanded ? undefined : OVERVIEW_LINES}
+        onTextLayout={e => {
+          if (!expanded)
+            setTruncated(e.nativeEvent.lines.length >= OVERVIEW_LINES);
+        }}
+      >
+        {text}
+      </Text>
+      {truncated ? (
+        <Pressable onPress={() => setExpanded(v => !v)} hitSlop={8}>
+          <Text style={styles.moreLabel}>
+            {expanded ? 'Ver menos' : 'Ver más'}
+          </Text>
+        </Pressable>
+      ) : null}
+    </View>
+  );
+}
+
+/** Temporada y episodio: se guardan con un botón para no mandar un request
+ *  por cada toque del stepper. */
+function SeriesProgress({
+  entry,
+  onSave,
+}: {
+  entry: UserContent;
+  onSave: (input: { currentSeason: number; currentEpisode: number }) => void;
+}) {
+  const [season, setSeason] = useState(entry.currentSeason ?? 0);
+  const [episode, setEpisode] = useState(entry.currentEpisode ?? 0);
+  const dirty =
+    season !== (entry.currentSeason ?? 0) ||
+    episode !== (entry.currentEpisode ?? 0);
+
+  return (
+    <>
+      <Text style={styles.cardLabel}>Progreso</Text>
+      <View style={styles.progressRow}>
+        <Stepper label="Temporada" value={season} onChange={setSeason} />
+        <Stepper label="Episodio" value={episode} onChange={setEpisode} />
+      </View>
+      {dirty ? (
+        <Pressable
+          style={styles.saveButton}
+          onPress={() =>
+            onSave({ currentSeason: season, currentEpisode: episode })
+          }
+        >
+          <Text style={styles.saveLabel}>Guardar progreso</Text>
+        </Pressable>
+      ) : null}
+    </>
+  );
+}
+
+function Stepper({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: number;
+  onChange: (v: number) => void;
+}) {
+  return (
+    <View style={styles.stepperField}>
+      <Text style={styles.stepperLabel}>{label}</Text>
+      <View style={styles.stepper}>
+        <Pressable
+          style={styles.stepperButton}
+          onPress={() => onChange(Math.max(0, value - 1))}
+          hitSlop={4}
+        >
+          <Icon name="minus" size={iconSize.sm} color={colors.text} />
+        </Pressable>
+        <Text style={styles.stepperValue}>{value}</Text>
+        <Pressable
+          style={styles.stepperButton}
+          onPress={() => onChange(value + 1)}
+          hitSlop={4}
+        >
+          <Icon name="plus" size={iconSize.sm} color={colors.text} />
+        </Pressable>
+      </View>
+    </View>
   );
 }
 
@@ -244,18 +431,28 @@ function BookProgress({
   const parsedPage = page.trim() === '' ? undefined : Number(page);
   const parsedTotal = total.trim() === '' ? undefined : Number(total);
   const dirty =
-    (parsedPage ?? null) !== entry.currentPage || (parsedTotal ?? null) !== entry.totalPages;
+    (parsedPage ?? null) !== entry.currentPage ||
+    (parsedTotal ?? null) !== entry.totalPages;
 
   const save = () => {
     if (
-      (parsedPage !== undefined && !(Number.isInteger(parsedPage) && parsedPage >= 0)) ||
-      (parsedTotal !== undefined && !(Number.isInteger(parsedTotal) && parsedTotal >= 1))
+      (parsedPage !== undefined &&
+        !(Number.isInteger(parsedPage) && parsedPage >= 0)) ||
+      (parsedTotal !== undefined &&
+        !(Number.isInteger(parsedTotal) && parsedTotal >= 1))
     ) {
       Toast.show({ type: 'error', text1: 'Escribí números enteros' });
       return;
     }
-    if (parsedPage !== undefined && parsedTotal !== undefined && parsedPage > parsedTotal) {
-      Toast.show({ type: 'error', text1: `La página no puede pasar de ${parsedTotal}` });
+    if (
+      parsedPage !== undefined &&
+      parsedTotal !== undefined &&
+      parsedPage > parsedTotal
+    ) {
+      Toast.show({
+        type: 'error',
+        text1: `La página no puede pasar de ${parsedTotal}`,
+      });
       return;
     }
     onSave({ currentPage: parsedPage, totalPages: parsedTotal });
@@ -263,14 +460,19 @@ function BookProgress({
 
   return (
     <>
-      <Text style={[typography.sectionTitle, styles.blockTitle]}>Progreso</Text>
+      <View style={styles.progressHeader}>
+        <Text style={styles.cardLabel}>Progreso</Text>
+        {percent !== null ? (
+          <Text style={styles.percentLabel}>{percent}%</Text>
+        ) : null}
+      </View>
       {percent !== null ? (
         <View style={styles.progressBarTrack}>
           <View style={[styles.progressBarFill, { width: `${percent}%` }]} />
         </View>
       ) : null}
       <View style={styles.pagesRow}>
-        <Text style={styles.pagesLabel}>Página</Text>
+        <Text style={styles.stepperLabel}>Página</Text>
         <TextInput
           value={page}
           onChangeText={setPage}
@@ -279,7 +481,7 @@ function BookProgress({
           placeholderTextColor={colors.muted}
           style={styles.pageInput}
         />
-        <Text style={styles.pagesLabel}>de</Text>
+        <Text style={styles.stepperLabel}>de</Text>
         <TextInput
           value={total}
           onChangeText={setTotal}
@@ -288,146 +490,178 @@ function BookProgress({
           placeholderTextColor={colors.muted}
           style={styles.pageInput}
         />
-        {percent !== null ? <Text style={styles.percentLabel}>{percent}%</Text> : null}
       </View>
       {dirty ? (
-        <Pressable style={styles.saveProgressButton} onPress={save}>
-          <Text style={styles.saveProgressLabel}>Guardar progreso</Text>
+        <Pressable style={styles.saveButton} onPress={save}>
+          <Text style={styles.saveLabel}>Guardar progreso</Text>
         </Pressable>
       ) : null}
     </>
   );
 }
 
-function ProgressField({
-  label,
-  value,
-  onChange,
-}: {
-  label: string;
-  value: string;
-  onChange: (v: string) => void;
-}) {
-  const numeric = Number(value) || 0;
-  return (
-    <View style={styles.progressField}>
-      <Text style={styles.progressLabel}>{label}</Text>
-      <View style={styles.stepper}>
-        <Pressable
-          style={styles.stepperButton}
-          onPress={() => onChange(String(Math.max(0, numeric - 1)))}
-        >
-          <Text style={styles.stepperButtonLabel}>−</Text>
-        </Pressable>
-        <Text style={styles.stepperValue}>{numeric}</Text>
-        <Pressable style={styles.stepperButton} onPress={() => onChange(String(numeric + 1))}>
-          <Text style={styles.stepperButtonLabel}>+</Text>
-        </Pressable>
-      </View>
-    </View>
-  );
-}
-
 const styles = StyleSheet.create({
-  spinner: { marginTop: spacing.xxl },
+  screen: { flex: 1, backgroundColor: colors.background },
+  spinner: { marginTop: spacing.xxl * 2 },
   scrollContent: { paddingBottom: spacing.xxl },
-  posterWrapper: {
-    width: '100%',
-    aspectRatio: 2 / 3,
+
+  backdrop: {
+    height: BACKDROP_HEIGHT,
     backgroundColor: colors.surface,
+    overflow: 'hidden',
+  },
+  fade: { position: 'absolute', left: 0, right: 0 },
+  top: { top: 0 },
+  bottom: { bottom: 0 },
+
+  header: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    gap: spacing.md,
+    paddingHorizontal: spacing.md,
+    marginTop: -POSTER_OVERLAP,
+  },
+  posterFrame: {
+    width: POSTER_WIDTH,
+    height: POSTER_HEIGHT,
+    borderRadius: radius.sm,
+    overflow: 'hidden',
+    backgroundColor: colors.surface,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.border,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   poster: { width: '100%', height: '100%' },
-  body: { padding: spacing.md },
-  metaLine: { ...typography.caption, marginTop: spacing.xs },
+  headerText: { flex: 1, paddingBottom: spacing.xs },
+  title: {
+    fontSize: 22,
+    lineHeight: 27,
+    fontWeight: '700',
+    color: colors.text,
+  },
+  meta: { ...typography.caption, marginTop: spacing.xs },
   genres: { ...typography.caption, color: colors.accent, marginTop: 2 },
-  actionsRow: {
-    flexDirection: 'row',
+
+  card: {
+    marginHorizontal: spacing.md,
+    marginTop: spacing.lg,
+    padding: spacing.md,
+    borderRadius: radius.md,
+    backgroundColor: colors.surface,
+  },
+  cardLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: colors.muted,
+    textTransform: 'uppercase',
+    letterSpacing: 0.6,
+    marginBottom: spacing.sm,
+  },
+  segmented: { flexDirection: 'row', gap: spacing.xs },
+  segment: {
+    flex: 1,
     alignItems: 'center',
-    gap: spacing.md,
-    marginTop: spacing.md,
+    justifyContent: 'center',
+    paddingVertical: spacing.sm,
+    paddingHorizontal: 2,
+    borderRadius: radius.sm,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  segmentLabel: { color: colors.muted, fontSize: 13, fontWeight: '600' },
+  hint: { ...typography.caption, marginTop: spacing.sm },
+  divider: {
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: colors.border,
+    marginVertical: spacing.md,
+  },
+
+  ratingRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    justifyContent: 'space-between',
   },
   favoriteButton: {
-    width: 40,
-    height: 40,
+    width: 44,
+    height: 44,
     borderRadius: radius.pill,
     borderWidth: 1,
     borderColor: colors.border,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  favoriteIcon: { color: colors.danger, fontSize: 20 },
-  overview: { ...typography.body, color: colors.muted, marginTop: spacing.md, lineHeight: 21 },
-  blockTitle: { marginTop: spacing.lg, marginBottom: spacing.sm },
-  statusRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
-  statusChipWrapper: {},
-  statusChip: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radius.pill,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 4,
+  favoriteButtonActive: {
+    borderColor: colors.danger,
+    backgroundColor: hexToRgba(colors.danger, 0.12),
   },
-  statusChipLabel: { color: colors.muted, fontSize: 12, fontWeight: '600' },
-  progressRow: { flexDirection: 'row', gap: spacing.lg },
-  progressField: { alignItems: 'center' },
-  progressLabel: { ...typography.caption, marginBottom: spacing.xs },
-  stepper: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
-  stepperButton: {
-    width: 32,
-    height: 32,
-    borderRadius: radius.sm,
-    backgroundColor: colors.surface,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  stepperButtonLabel: { color: colors.text, fontSize: 18 },
-  stepperValue: { color: colors.text, fontSize: 16, minWidth: 24, textAlign: 'center' },
+
+  progressHeader: { flexDirection: 'row', justifyContent: 'space-between' },
+  percentLabel: { fontSize: 12, fontWeight: '700', color: colors.accent },
   progressBarTrack: {
     height: 6,
     borderRadius: 3,
-    backgroundColor: colors.surface,
+    backgroundColor: colors.background,
     overflow: 'hidden',
-    marginBottom: spacing.sm,
+    marginBottom: spacing.md,
   },
   progressBarFill: { height: '100%', backgroundColor: colors.accent },
+  progressRow: { flexDirection: 'row', gap: spacing.xl },
   pagesRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
-  pagesLabel: { ...typography.caption },
   pageInput: {
-    minWidth: 64,
+    minWidth: 72,
     borderWidth: 1,
     borderColor: colors.border,
     borderRadius: radius.sm,
+    backgroundColor: colors.background,
     paddingHorizontal: spacing.sm,
     paddingVertical: 6,
     color: colors.text,
     fontSize: 16,
     textAlign: 'center',
   },
-  percentLabel: { ...typography.caption, color: colors.accent, fontWeight: '700' },
-  saveProgressButton: {
+  stepperField: { gap: spacing.xs },
+  stepperLabel: { ...typography.caption },
+  stepper: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  stepperButton: {
+    width: 34,
+    height: 34,
+    borderRadius: radius.sm,
+    backgroundColor: colors.background,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  stepperValue: {
+    color: colors.text,
+    fontSize: 17,
+    minWidth: 28,
+    textAlign: 'center',
+  },
+  saveButton: {
     marginTop: spacing.md,
-    alignSelf: 'flex-start',
-    backgroundColor: colors.accent,
-    borderRadius: radius.md,
-    paddingHorizontal: spacing.md,
+    backgroundColor: colors.primary,
+    borderRadius: radius.sm,
+    paddingVertical: spacing.sm + 2,
+    alignItems: 'center',
+  },
+  saveLabel: { color: colors.text, fontWeight: '700' },
+
+  section: { paddingHorizontal: spacing.md, marginTop: spacing.lg },
+  sectionTitle: { ...typography.sectionTitle, marginBottom: spacing.sm },
+  overview: { ...typography.body, color: colors.muted, lineHeight: 22 },
+  moreLabel: {
+    color: colors.primary,
+    fontWeight: '600',
+    marginTop: spacing.xs,
+  },
+
+  removeButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'center',
+    gap: spacing.xs,
+    marginTop: spacing.xl,
     paddingVertical: spacing.sm,
   },
-  saveProgressLabel: { color: colors.background, fontWeight: '700' },
-  addButton: {
-    marginTop: spacing.xl,
-    backgroundColor: colors.primary,
-    borderRadius: radius.md,
-    paddingVertical: spacing.sm + 4,
-    alignItems: 'center',
-  },
-  addLabel: { color: colors.text, fontWeight: '700' },
-  removeButton: {
-    marginTop: spacing.xl,
-    borderWidth: 1,
-    borderColor: colors.danger,
-    borderRadius: radius.md,
-    paddingVertical: spacing.sm + 4,
-    alignItems: 'center',
-  },
-  removeLabel: { color: colors.danger, fontWeight: '700' },
+  removeLabel: { color: colors.muted, fontWeight: '600' },
 });
